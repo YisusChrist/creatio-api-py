@@ -2,6 +2,7 @@
 
 import logging
 
+
 # Create a logger instance
 logger: logging.Logger = logging.getLogger(name=__name__)
 
