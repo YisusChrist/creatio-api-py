@@ -5,17 +5,16 @@
 @desc     This script is used to test the OData API of Creatio.
 """
 
-from functools import lru_cache
 import json
 import logging
 import os
 import sys
 from contextlib import suppress
+from functools import lru_cache
 from typing import Any
 from typing import Optional
 
 import requests  # pip install requests
-import requests_cache  # pip install requests-cache
 from dotenv import load_dotenv  # pip install python-dotenv
 from requests_pprint import print_response_summary  # pip install requests-pprint
 
@@ -289,4 +288,3 @@ class CreatioODataAPI:
             >>> response = delete_collection_data("Collection1", id="IdValue")
         """
         return self._make_request("DELETE", f"/0/odata/{collection}({record_id})")
-
