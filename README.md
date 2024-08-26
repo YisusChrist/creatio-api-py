@@ -1,20 +1,67 @@
 ![Creatio](https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/Creatio_logo.svg/2560px-Creatio_logo.svg.png)
 
-This Python script is designed for testing the OData API of Creatio. It includes functionality for authentication, making generic HTTP requests to the OData service, and performing various operations on object collections.
+<p align="center">
+    <a href="https://github.com/YisusChrist/creatio-api-py/issues">
+        <img src="https://img.shields.io/github/issues/YisusChrist/creatio-api-py?color=171b20&label=Issues%20%20&logo=gnubash&labelColor=e05f65&logoColor=ffffff">&nbsp;&nbsp;&nbsp;
+    </a>
+    <a href="https://github.com/YisusChrist/creatio-api-py/forks">
+        <img src="https://img.shields.io/github/forks/YisusChrist/creatio-api-py?color=171b20&label=Forks%20%20&logo=git&labelColor=f1cf8a&logoColor=ffffff">&nbsp;&nbsp;&nbsp;
+    </a>
+    <a href="https://github.com/YisusChrist/creatio-api-py/">
+        <img src="https://img.shields.io/github/stars/YisusChrist/creatio-api-py?color=171b20&label=Stargazers&logo=octicon-star&labelColor=70a5eb">&nbsp;&nbsp;&nbsp;
+    </a>
+    <a href="https://github.com/YisusChrist/creatio-api-py/actions">
+        <img alt="Tests Passing" src="https://github.com/YisusChrist/creatio-api-py/actions/workflows/github-code-scanning/codeql/badge.svg">&nbsp;&nbsp;&nbsp;
+    </a>
+    <a href="https://github.com/YisusChrist/creatio-api-py/pulls">
+        <img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/YisusChrist/creatio-api-py?color=0088ff">&nbsp;&nbsp;&nbsp;
+    </a>
+    <a href="https://opensource.org/license/gpl-2-0/">
+        <img alt="License" src="https://img.shields.io/github/license/YisusChrist/creatio-api-py?color=0088ff">
+    </a>
+</p>
 
-Table of Contents
+<br>
+
+<p align="center">
+    <a href="https://github.com/YisusChrist/creatio-api-py/issues/new/choose">Report Bug</a>
+    ·
+    <a href="https://github.com/YisusChrist/creatio-api-py/issues/new/choose">Request Feature</a>
+    ·
+    <a href="https://github.com/YisusChrist/creatio-api-py/discussions">Ask Question</a>
+    ·
+    <a href="https://github.com/YisusChrist/creatio-api-py/security/policy#reporting-a-vulnerability">Report security bug</a>
+</p>
+
+<br>
+
+![Alt](https://repobeats.axiom.co/api/embed/7fb383884a6d110fbd2119f26faed85c7cdc8202.svg "Repobeats analytics image")
+
+<br>
+
+This Python library is designed for testing the OData API of Creatio. It includes functionality for authentication, making generic HTTP requests to the OData service, and performing various operations on object collections.
+
+<details>
+<summary>Table of Contents</summary>
 
 - [Features](#features)
+- [Requirements](#requirements)
 - [Installation](#installation)
+  - [From PyPI](#from-pypi)
+  - [Manual installation](#manual-installation)
+  - [Uninstall](#uninstall)
 - [Usage](#usage)
-- [Examples](#examples)
   - [Authentication](#authentication)
   - [Add a Record to a Collection](#add-a-record-to-a-collection)
   - [Modify a Record in a Collection](#modify-a-record-in-a-collection)
   - [Get Data from a Collection](#get-data-from-a-collection)
   - [Delete a Record from a Collection](#delete-a-record-from-a-collection)
   - [Handle information from the API session](#handle-information-from-the-api-session)
+- [Contributors](#contributors)
+  - [How do I contribute to creatio-api-py?](#how-do-i-contribute-to-creatio-api-py)
 - [License](#license)
+
+</details>
 
 # Features
 
@@ -23,20 +70,64 @@ Table of Contents
 - **Collection Operations**: Interact with object collections, including adding, modifying, and deleting records.
 - **Logging**: Enable debugging to log detailed information about HTTP requests and responses.
 
+# Requirements
+
+Here's a breakdown of the packages needed and their versions:
+
+- [poetry](https://pypi.org/project/poetry) >= 1.7.1 (_only for manual installation_)
+- [python-dotenv](https://pypi.org/project/aiohttp) >= 1.0.1
+- [requests-cache](https://pypi.org/project/requests-cache) >= 1.1.1
+- [requests-pprint](https://pypi.org/project/requests-pprint) >= 1.0.0
+- [requests](https://pypi.org/project/requests) >= 2.31.0
+- [rich](https://pypi.org/project/rich) >= 13.7.0
+
+> [!NOTE]\
+> The software has been developed and tested using Python `3.12.1`. The minimum required version to run the software is Python 3.6. Although the software may work with previous versions, it is not guaranteed.
+
 # Installation
 
-`creatio-odata-api` can be installed easily as a PyPI package. Just run the following command:
+## From PyPI
+
+`creatio-api-py` can be installed easily as a PyPI package. Just run the following command:
 
 ```bash
-pip3 install creatio-odata-api
+pip3 install creatio-api-py
 ```
 
 > [!IMPORTANT]
-> For best practices and to avoid potential conflicts with your global Python environment, it is strongly recommended to install this program within a virtual environment. Avoid using the --user option for global installations. We highly recommend using [pipx](https://pypi.org/project/pipx) for a safe and isolated installation experience. Therefore, the appropriate command to install `creatio-odata-api` would be:
+> For best practices and to avoid potential conflicts with your global Python environment, it is strongly recommended to install this program within a virtual environment. Avoid using the --user option for global installations. We highly recommend using [pipx](https://pypi.org/project/pipx) for a safe and isolated installation experience. Therefore, the appropriate command to install `creatio-api-py` would be:
 >
 > ```bash
-> pipx install creatio-odata-api
+> pipx install creatio-api-py
 > ```
+
+## Manual installation
+
+If you prefer to install the program manually, follow these steps:
+
+> [!NOTE]\
+> This will install the version from the latest commit, not the latest release.
+
+1. Download the latest version of [creatio-api-py](https://github.com/YisusChrist/creatio-api-py) from this repository:
+
+   ```sh
+   git clone https://github.com/YisusChrist/creatio-api-py
+   cd creatio-api-py
+   ```
+
+2. Install the package:
+
+   ```sh
+   poetry install --only-main
+   ```
+
+## Uninstall
+
+If you installed it from PyPI, you can use the following command:
+
+```bash
+pipx uninstall creatio-api-py
+```
 
 # Usage
 
@@ -52,8 +143,8 @@ The package allows you to stablish connection to any Creatio environment using t
 2. Authenticate to the Creatio environment:
 
    ```python
-   from creatio_odata_api.api import CreatioODataAPI
-   from creatio_odata_api.utils import print_exception
+   from creatio_api_py.api import CreatioODataAPI
+   from creatio_api_py.utils import print_exception
 
    creatio_url: str = "https://your-environment.creatio.com"
    api = CreatioODataAPI(base_url=creatio_url)
@@ -91,13 +182,13 @@ The package allows you to stablish connection to any Creatio environment using t
    }
    ```
 
-# Examples
+Here are some examples of how to interact with the Creatio API using this package:
 
 ## Authentication
 
 ```python
-from creatio_odata_api.api import CreatioODataAPI
-from creatio_odata_api.utils import print_exception
+from creatio_api_py.api import CreatioODataAPI
+from creatio_api_py.utils import print_exception
 
 creatio_url: str = "https://your-environment.creatio.com"
 api = CreatioODataAPI(base_url=creatio_url)
@@ -229,6 +320,20 @@ Additionally, you can modify the object's base url if needed:
 api.base_url = "https://another-environment.creatio.com"
 ```
 
+# Contributors
+
+<a href="https://github.com/YisusChrist/creatio-api-py/graphs/contributors"><img src="https://contrib.rocks/image?repo=YisusChrist/creatio-api-py" /></a>
+
+## How do I contribute to creatio-api-py?
+
+Before you participate in our delightful community, please read the [code of conduct](https://github.com/YisusChrist/.github/blob/main/CODE_OF_CONDUCT.md).
+
+I'm far from being an expert and suspect there are many ways to improve – if you have ideas on how to make the configuration easier to maintain (and faster), don't hesitate to fork and send pull requests!
+
+We also need people to test out pull requests. So take a look through [the open issues](https://github.com/YisusChrist/creatio-api-py/issues) and help where you can.
+
+See [Contributing](https://github.com/YisusChrist/.github/blob/main/CONTRIBUTING.md) for more details.
+
 # License
 
-This script is licensed under the [GNU General Public License v3.0](https://opensource.org/licenses/GPL-3.0).
+`creatio-api-py` is licensed under the [GNU General Public License v3.0](https://opensource.org/licenses/GPL-3.0).
