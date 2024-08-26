@@ -3,7 +3,7 @@
 import pytest
 import requests
 
-from creatio_odata_api import CreatioODataAPI
+from creatio_api_py import CreatioODataAPI
 
 
 record_id: str = ""

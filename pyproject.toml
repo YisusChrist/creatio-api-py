@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "creatio-odata-api"
-version = "1.1.1"
+name = "creatio-api-py"
+version = "1.0.0"
 description = "Python client for Creatio OData API"
 license = "GPL-3.0-only"
 authors = ["Alejandro González Momblán <alejandro.gonzalez.momblan@evoluciona.es>"]
 readme = "README.md"
-repository = "https://github.com/yisuschrist/creatio-odata-api"
+repository = "https://github.com/yisuschrist/creatio-api-py"
 
 [tool.poetry.dependencies]
 python = "^3.12"
