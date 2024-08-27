@@ -8,7 +8,7 @@ readme = "README.md"
 repository = "https://github.com/yisuschrist/creatio-api-py"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.9"
 python-dotenv = "^1.0.1"
 requests = "^2.31.0"
 rich = "^13.7.0"
