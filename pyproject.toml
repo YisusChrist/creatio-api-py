@@ -9,11 +9,12 @@ repository = "https://github.com/yisuschrist/creatio-api-py"
 
 [tool.poetry.dependencies]
 python = "^3.9"
+pydantic = "^2.8.2"
 python-dotenv = "^1.0.1"
 requests = "^2.31.0"
-rich = "^13.7.0"
 requests-cache = "^1.1.1"
 requests-pprint = "^1.0.0"
+rich = "^13.7.0"
 
 [tool.poetry.group.dev.dependencies]
 bandit = "^1.7.7"

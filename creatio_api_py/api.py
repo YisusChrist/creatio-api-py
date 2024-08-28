@@ -6,66 +6,52 @@
 """
 
 import json
-import logging
 import os
-import sys
 from contextlib import suppress
-from functools import lru_cache
 from typing import Any
 from typing import Optional
 
 import requests  # pip install requests
+import requests_cache  # pip install requests-cache
 from dotenv import load_dotenv  # pip install python-dotenv
+from pydantic import Field, HttpUrl
+from pydantic.dataclasses import dataclass
 from requests_pprint import print_response_summary  # pip install requests-pprint
 
 from .logs import logger
 from .utils import print_exception
 
 
-DEBUG = False
-if DEBUG:
-    # These two lines enable debugging at httplib level (requests->urllib3->http.client)
-    # You will see the REQUEST, including HEADERS and DATA, and RESPONSE with HEADERS but
-    # without DATA. The only thing missing will be the response.body which is not logged.
-    try:
-        import http.client as http_client
-    except ImportError:
-        # Python 2
-        import httplib as http_client
-
-    http_client.HTTPConnection.debuglevel = 1
-    # You must initialize logging, otherwise you'll not see debug output.
-    logging.basicConfig()
-    logging.getLogger().setLevel(logging.DEBUG)
-    requests_log = logging.getLogger("requests.packages.urllib3")
-    requests_log.setLevel(logging.DEBUG)
-    requests_log.propagate = True
-
-
+@dataclass(config={"arbitrary_types_allowed": True})
 class CreatioODataAPI:
     """A class to interact with the Creatio OData API."""
 
-    def __init__(self, base_url: str):
-        if not base_url:
-            raise ValueError("base_url is required")
-        self.__base_url: str = base_url
-        self.__session = requests.session()  # Create a session object
-        self.__api_calls = 0  # Initialize the API calls counter
+    base_url: HttpUrl
+    debug: bool = False
+    cache: bool = False
+    __api_calls: int = Field(default=0, init=False)
+    __session: requests.Session | requests_cache.CachedSession = Field(init=False)
+
+    def __post_init__(self) -> None:
+        """Initialize the session based on the cache setting."""
+        if self.cache:
+            cached_backend = requests_cache.SQLiteCache(
+                db_path="creatio_cache", use_cache_dir=True
+            )
+            self.__session = requests_cache.CachedSession(
+                backend=cached_backend, expire_after=3600
+            )
+            if self.debug:
+                logger.debug("Using requests-cache for session.")
+        else:
+            self.__session = requests.Session()
+            if self.debug:
+                logger.debug("Using standard requests session.")
 
     @property
     def api_calls(self) -> int:
         """Property to get the number of API calls performed."""
         return self.__api_calls
-
-    @property
-    def base_url(self) -> str:
-        """Property to get the base URL of the OData service."""
-        return self.__base_url
-
-    @base_url.setter
-    def base_url(self, value: str) -> None:
-        """Property to set the base URL of the OData service."""
-        self.__base_url = value
 
     @property
     def session_cookies(self) -> dict[str, Any]:
@@ -92,7 +78,7 @@ class CreatioODataAPI:
         Returns:
             requests.models.Response: The response from the HTTP request.
         """
-        url: str = f"{self.__base_url}{endpoint}"
+        url: str = f"{self.base_url}{endpoint}"
 
         headers: dict[str, str] = {
             "Accept": "application/json; odata=verbose",
@@ -117,25 +103,24 @@ class CreatioODataAPI:
             print_exception(e)
             raise
 
-        if DEBUG:
+        if self.debug:
             print_response_summary(response)
 
         self.__api_calls += 1  # Increment the API calls counter
 
         return response
 
-    @lru_cache()
     def _load_env(self) -> None:
         """Load the environment variables from the .env file."""
-        env_vars_loaded = load_dotenv()
+        env_vars_loaded: bool = load_dotenv()
         if env_vars_loaded:
             logger.info("Environment variables loaded successfully")
         else:
             logger.warning("Environment variables could not be loaded")
-            sys.exit(1)
+            return
 
     def authenticate(
-        self, username: Optional[str] = "", password: Optional[str] = ""
+        self, username: Optional[str] = None, password: Optional[str] = None
     ) -> requests.models.Response:
         """
         Authenticate and get a cookie.
@@ -149,11 +134,11 @@ class CreatioODataAPI:
         """
         if not username and not password:
             self._load_env()
-            username = os.getenv("CREATIO_USERNAME") or ""
-            password = os.getenv("CREATIO_PASSWORD") or ""
+            username = os.getenv("CREATIO_USERNAME", "")
+            password = os.getenv("CREATIO_PASSWORD", "")
         if not username or not password:
             logger.error("Username or password empty")
-            sys.exit(1)
+            raise ValueError("Username or password empty")
 
         data: dict[str, str] = {
             "UserName": username,
@@ -212,7 +197,7 @@ class CreatioODataAPI:
             Get an object collection instance by instance Id of another object collection via the $expand parameter:
             >>> response = get_collection_data("Collection1(Id)", params={"$expand": "Collection2"})
         """
-        url = f"/0/odata/{collection}"
+        url: str = f"/0/odata/{collection}"
 
         if record_id:
             url += f"({record_id})"
