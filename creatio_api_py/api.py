@@ -11,15 +11,15 @@ from contextlib import suppress
 from typing import Any
 from typing import Optional
 
-import requests  # pip install requests
-import requests_cache  # pip install requests-cache
-from dotenv import load_dotenv  # pip install python-dotenv
+import requests
+import requests_cache
+from dotenv import load_dotenv
 from pydantic import Field, HttpUrl
 from pydantic.dataclasses import dataclass
-from requests_pprint import print_response_summary  # pip install requests-pprint
+from requests_pprint import print_response_summary
 
-from .logs import logger
-from .utils import print_exception
+from creatio_api_py.logs import logger
+from creatio_api_py.utils import print_exception
 
 
 @dataclass(config={"arbitrary_types_allowed": True})
@@ -72,8 +72,9 @@ class CreatioODataAPI:
         Args:
             method (str): HTTP method (GET, POST, PATCH, etc.).
             endpoint (str): The API endpoint to request.
-            data (dict): The request data (for POST and PATCH requests).
-            params (dict): Query parameters for the request.
+            data (Optional[dict[str, Any]], optional): The request data (for POST
+                and PATCH requests).
+            params (Optional[dict[str, Any]], optional): Query parameters for the request.
 
         Returns:
             requests.models.Response: The response from the HTTP request.
@@ -117,7 +118,6 @@ class CreatioODataAPI:
             logger.info("Environment variables loaded successfully")
         else:
             logger.warning("Environment variables could not be loaded")
-            return
 
     def authenticate(
         self, username: Optional[str] = None, password: Optional[str] = None
@@ -126,8 +126,11 @@ class CreatioODataAPI:
         Authenticate and get a cookie.
 
         Args:
-            username (str): The username to authenticate with.
-            password (str): The password to authenticate with.
+            username (Optional[str], optional): The username to authenticate with.
+            password (Optional[str], optional): The password to authenticate with.
+
+        Raises:
+            ValueError: If the username or password is empty or if the authentication fails.
 
         Returns:
             requests.models.Response: The response from the authentication request.
@@ -150,7 +153,7 @@ class CreatioODataAPI:
         )
         if response.json().get("Exception"):
             logger.error("Authentication failed")
-            raise Exception("Authentication failed", response.json())
+            raise ValueError("Authentication failed", response.json())
 
         # Extract the cookie from the response
         if response:
@@ -168,14 +171,6 @@ class CreatioODataAPI:
         Reference: https://documenter.getpostman.com/view/10204500/SztHX5Qb?version=latest#48a0da23-68ff-4030-89c3-be0e8c634d14
 
         Get the specified collection data.
-
-        Args:
-            collection (str): The collection to get.
-            params (dict): Query parameters for the request.
-            record_id (str): The ID of the record to get.
-
-        Returns:
-            requests.models.Response: The response from the case list request.
 
         Examples:
             Get object collection instances:
@@ -196,6 +191,14 @@ class CreatioODataAPI:
             >>> response = get_collection_data("Collection1", params={"$select": "Field1,Field2"})
             Get an object collection instance by instance Id of another object collection via the $expand parameter:
             >>> response = get_collection_data("Collection1(Id)", params={"$expand": "Collection2"})
+
+        Args:
+            collection (str): The collection to get.
+            params (Optional[dict[str, Any]], optional): Query parameters for the request.
+            record_id (Optional[str], optional): The ID of the record to get.
+
+        Returns:
+            requests.models.Response: The response from the case list request.
         """
         url: str = f"/0/odata/{collection}"
 
@@ -214,16 +217,16 @@ class CreatioODataAPI:
 
         Add a new record in the specified collection.
 
-        Args:
-            collection (str): The collection to insert in.
-            data (dict): The data to insert.
-
-        Returns:
-            requests.models.Response: The response from the case list request.
-
         Examples:
             Insert a new record in the specified collection:
             >>> response = add_collection_data("Collection1", data={"Field1": "Value1", "Field2": "Value2"})
+
+        Args:
+            collection (str): The collection to insert in.
+            data (dict[str, Any]): The data to insert.
+
+        Returns:
+            requests.models.Response: The response from the case list request.
         """
         return self._make_request("POST", f"/0/odata/{collection}", data=data)
 
@@ -238,17 +241,17 @@ class CreatioODataAPI:
 
         Modify a record in the specified collection.
 
-        Args:
-            collection (str): The collection to modify.
-            record_id (str): The ID of the record to modify.
-            data (dict): The data to update.
-
-        Returns:
-            requests.models.Response: The response from the case list request.
-
         Examples:
             Modify a record in the specified collection:
             >>> response = modify_collection_data("Collection1", record_id="IdValue", data={"Field1": "Value1", "Field2": "Value2"})
+
+        Args:
+            collection (str): The collection to modify.
+            record_id (str): The ID of the record to modify.
+            data (dict[str, Any]): The data to update.
+
+        Returns:
+            requests.models.Response: The response from the case list request.
         """
         return self._make_request(
             "PATCH", f"/0/odata/{collection}({record_id})", data=data
@@ -261,15 +264,15 @@ class CreatioODataAPI:
         Reference: https://documenter.getpostman.com/view/10204500/SztHX5Qb?version=latest#364435a7-12ef-4924-83cf-ed9e74c23439
         Delete a record in the specified collection.
 
+        Examples:
+            Delete a record in the specified collection:
+            >>> response = delete_collection_data("Collection1", id="IdValue")
+
         Args:
             collection (str): The collection to delete from.
             record_id (str): The ID of the record to delete.
 
         Returns:
             requests.models.Response: The response from the case list request.
-
-        Examples:
-            Delete a record in the specified collection:
-            >>> response = delete_collection_data("Collection1", id="IdValue")
         """
         return self._make_request("DELETE", f"/0/odata/{collection}({record_id})")

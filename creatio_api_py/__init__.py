@@ -1,6 +1,6 @@
 """Init file for Creatio OData API package."""
 
-from .api import CreatioODataAPI
+from creatio_api_py.api import CreatioODataAPI
 
 
-__all__ = ["CreatioODataAPI", "DEBUG"]
+__all__ = ["CreatioODataAPI"]
