@@ -947,13 +947,13 @@ files = [
 
 [[package]]
 name = "pbr"
-version = "6.0.0"
+version = "6.1.0"
 description = "Python Build Reasonableness"
 optional = false
 python-versions = ">=2.6"
 files = [
-    {file = "pbr-6.0.0-py2.py3-none-any.whl", hash = "sha256:4a7317d5e3b17a3dccb6a8cfe67dab65b20551404c52c8ed41279fa4f0cb4cda"},
-    {file = "pbr-6.0.0.tar.gz", hash = "sha256:d1377122a5a00e2f940ee482999518efe16d745d423a670c27773dfbc3c9a7d9"},
+    {file = "pbr-6.1.0-py2.py3-none-any.whl", hash = "sha256:a776ae228892d8013649c0aeccbb3d5f99ee15e005a4cbb7e61d55a067b28a2a"},
+    {file = "pbr-6.1.0.tar.gz", hash = "sha256:788183e382e3d1d7707db08978239965e8b9e4e5ed42669bf4758186734d5f24"},
 ]
 
 [[package]]
@@ -1127,17 +1127,6 @@ files = [
 
 [package.dependencies]
 typing-extensions = ">=4.6.0,<4.7.0 || >4.7.0"
-
-[[package]]
-name = "pydoctest"
-version = "0.2.1"
-description = "Test if doctype types match signatures"
-optional = false
-python-versions = ">=3.6"
-files = [
-    {file = "pydoctest-0.2.1-py3-none-any.whl", hash = "sha256:8044448e3bc6471efb55443fc6a373e228f273635fb30f6f1ac97adde4be36cf"},
-    {file = "pydoctest-0.2.1.tar.gz", hash = "sha256:d68efde75ca17994d88801bd6081cff3459c9e8211d659dbd9068d50e21ed1f8"},
-]
 
 [[package]]
 name = "pygments"
@@ -1620,4 +1609,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "68acbc5731f3de532302eff37b2b458688d0b7a2e4dd6fa858df2b25fe099641"
+content-hash = "2a5fba00b23a5bfd034259f0dc470caf3869ec97c7bbc04ad28dece99ea0d915"
