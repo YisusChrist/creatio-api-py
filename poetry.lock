@@ -1129,17 +1129,6 @@ files = [
 typing-extensions = ">=4.6.0,<4.7.0 || >4.7.0"
 
 [[package]]
-name = "pydoctest"
-version = "0.2.1"
-description = "Test if doctype types match signatures"
-optional = false
-python-versions = ">=3.6"
-files = [
-    {file = "pydoctest-0.2.1-py3-none-any.whl", hash = "sha256:8044448e3bc6471efb55443fc6a373e228f273635fb30f6f1ac97adde4be36cf"},
-    {file = "pydoctest-0.2.1.tar.gz", hash = "sha256:d68efde75ca17994d88801bd6081cff3459c9e8211d659dbd9068d50e21ed1f8"},
-]
-
-[[package]]
 name = "pygments"
 version = "2.18.0"
 description = "Pygments is a syntax highlighting package written in Python."
@@ -1348,13 +1337,13 @@ yaml = ["pyyaml (>=6.0.1)"]
 
 [[package]]
 name = "requests-pprint"
-version = "1.1.0"
+version = "1.1.1"
 description = "Pretty print your python HTTP requests"
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "requests_pprint-1.1.0-py3-none-any.whl", hash = "sha256:4f920a8739ebbce4ea29f4150ee4c1d19a3d87be3f466764546d48e3269c2f7b"},
-    {file = "requests_pprint-1.1.0.tar.gz", hash = "sha256:f3c38a69e3494e4bb5e959b433b7fde9fef40a2780d32f2039a53def71ee030c"},
+    {file = "requests_pprint-1.1.1-py3-none-any.whl", hash = "sha256:1e2b8c66922a2575a3f95b68b8a4a6e53b55a5993d53c0b072c6ca5c40dd3d9b"},
+    {file = "requests_pprint-1.1.1.tar.gz", hash = "sha256:51f1bfa32d8ce4c992fb9cd019f1ecec0db260a3f7ac07b03c7791c3f4b7bef4"},
 ]
 
 [package.dependencies]
@@ -1620,4 +1609,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "68acbc5731f3de532302eff37b2b458688d0b7a2e4dd6fa858df2b25fe099641"
+content-hash = "2a5fba00b23a5bfd034259f0dc470caf3869ec97c7bbc04ad28dece99ea0d915"
