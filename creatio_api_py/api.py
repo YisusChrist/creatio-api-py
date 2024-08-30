@@ -14,7 +14,8 @@ from typing import Optional
 import requests
 import requests_cache
 from dotenv import load_dotenv
-from pydantic import Field, HttpUrl
+from pydantic import Field
+from pydantic import HttpUrl
 from pydantic.dataclasses import dataclass
 from requests_pprint import print_response_summary
 
