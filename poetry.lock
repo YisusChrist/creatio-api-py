@@ -264,13 +264,13 @@ uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
 name = "cattrs"
-version = "24.1.1"
+version = "24.1.2"
 description = "Composable complex class support for attrs and dataclasses."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "cattrs-24.1.1-py3-none-any.whl", hash = "sha256:ec8ce8fdc725de9d07547cd616f968670687c6fa7a2e263b088370c46d834d97"},
-    {file = "cattrs-24.1.1.tar.gz", hash = "sha256:16e94a13f9aaf6438bd5be5df521e072b1b00481b4cf807bcb1acbd49f814c08"},
+    {file = "cattrs-24.1.2-py3-none-any.whl", hash = "sha256:67c7495b760168d931a10233f979b28dc04daf853b30752246f4f8471c6d68d0"},
+    {file = "cattrs-24.1.2.tar.gz", hash = "sha256:8028cfe1ff5382df59dd36474a86e02d817b06eaf8af84555441bac915d2ef85"},
 ]
 
 [package.dependencies]
@@ -1029,8 +1029,8 @@ files = [
 annotated-types = ">=0.6.0"
 pydantic-core = "2.23.4"
 typing-extensions = [
-    {version = ">=4.12.2", markers = "python_version >= \"3.13\""},
     {version = ">=4.6.1", markers = "python_version < \"3.13\""},
+    {version = ">=4.12.2", markers = "python_version >= \"3.13\""},
 ]
 
 [package.extras]
@@ -1167,8 +1167,8 @@ files = [
 astroid = ">=3.2.4,<=3.3.0-dev0"
 colorama = {version = ">=0.4.5", markers = "sys_platform == \"win32\""}
 dill = [
-    {version = ">=0.3.7", markers = "python_version >= \"3.12\""},
     {version = ">=0.2", markers = "python_version < \"3.11\""},
+    {version = ">=0.3.7", markers = "python_version >= \"3.12\""},
     {version = ">=0.3.6", markers = "python_version >= \"3.11\" and python_version < \"3.12\""},
 ]
 isort = ">=4.2.5,<5.13.0 || >5.13.0,<6"
