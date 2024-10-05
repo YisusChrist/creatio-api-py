@@ -16,7 +16,7 @@
     <a href="https://github.com/YisusChrist/creatio-api-py/pulls">
         <img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/YisusChrist/creatio-api-py?color=0088ff">&nbsp;&nbsp;&nbsp;
     </a>
-    <a href="https://opensource.org/license/gpl-2-0/">
+    <a href="https://opensource.org/license/GPL-3.0/">
         <img alt="License" src="https://img.shields.io/github/license/YisusChrist/creatio-api-py?color=0088ff">
     </a>
 </p>
@@ -336,4 +336,4 @@ See [Contributing Guidelines](https://github.com/YisusChrist/.github/blob/main/C
 
 # License
 
-`creatio-api-py` is licensed under the [GNU General Public License v3.0](https://opensource.org/licenses/GPL-3.0).
+`creatio-api-py` is licensed under the [GNU General Public License v3.0](https://opensource.org/license/GPL-3.0).
