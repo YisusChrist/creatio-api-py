@@ -7,7 +7,7 @@
     <a href="https://github.com/YisusChrist/creatio-api-py/forks">
         <img src="https://img.shields.io/github/forks/YisusChrist/creatio-api-py?color=171b20&label=Forks%20%20&logo=git&labelColor=f1cf8a&logoColor=ffffff">&nbsp;&nbsp;&nbsp;
     </a>
-    <a href="https://github.com/YisusChrist/creatio-api-py/">
+    <a href="https://github.com/YisusChrist/creatio-api-py/stargazers">
         <img src="https://img.shields.io/github/stars/YisusChrist/creatio-api-py?color=171b20&label=Stargazers&logo=octicon-star&labelColor=70a5eb">&nbsp;&nbsp;&nbsp;
     </a>
     <a href="https://github.com/YisusChrist/creatio-api-py/actions">
@@ -332,7 +332,7 @@ I'm far from being an expert and suspect there are many ways to improve – if y
 
 We also need people to test out pull requests. So take a look through [the open issues](https://github.com/YisusChrist/creatio-api-py/issues) and help where you can.
 
-See [Contributing](https://github.com/YisusChrist/.github/blob/main/CONTRIBUTING.md) for more details.
+See [Contributing Guidelines](https://github.com/YisusChrist/.github/blob/main/CONTRIBUTING.md) for more details.
 
 # License
 
