@@ -39,7 +39,7 @@ repos:
         entry: end-of-file-fixer
         language: system
         types: [text]
-        stages: [commit, push, manual]
+        stages: [Nonepre-commitNone, Nonepre-pushNone, manual]
       - id: pylint
         name: pylint
         entry: pylint
@@ -65,13 +65,13 @@ repos:
         entry: trailing-whitespace-fixer
         language: system
         types: [text]
-        stages: [commit, push, manual]
+        stages: [Nonepre-commitNone, Nonepre-pushNone, manual]
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: check-ast
       - id: check-builtin-literals
@@ -99,7 +99,7 @@ repos:
           - --all
         id: pycln
   - repo: https://github.com/psf/black
-    rev: 24.8.0
+    rev: 24.10.0
     hooks:
       - id: black
   - repo: https://github.com/pycqa/isort
@@ -117,4 +117,4 @@ repos:
       - id: commitizen
       - id: commitizen-branch
         stages:
-          - push
+          - Nonepre-pushNone
