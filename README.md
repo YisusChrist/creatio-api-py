@@ -199,6 +199,20 @@ except Exception as e:  # pylint: disable=broad-except
    print_exception(e, f"Unable to authenticate on {creatio_url}")
 ```
 
+- Response code: `200 OK`
+- Response body:
+
+```json
+{
+  "Code": 0,
+  "Message": "",
+  "Exception": null,
+  "PasswordChangeUrl": null,
+  "RedirectUrl": "/0/Shell",
+  "UserType": "General"
+}
+```
+
 ## Add a Record to a Collection
 
 ```python
@@ -212,24 +226,25 @@ payload: dict[str, str] = {
 response = api.add_collection_data("Case", data=payload)
 ```
 
-- Response code: 201 Created
+- Response code: `201 Created`
 - Response body:
 
-```python
+```json
 {
-   '@odata.context': 'https://your-environment.creatio.com/0/odata/$metadata#Case/$entity',
-   'Id': 'cf8c6558-9e3e-48ca-a237-765b0f54b798',
-   'CreatedOn': '2024-06-17T15:28:32.7013964Z',
-   'CreatedById': '410006e1-ca4e-4502-a9ec-e54d922d2c00',
-   'ModifiedOn': '2024-06-17T15:28:32.7013964Z',
-   'ModifiedById': '410006e1-ca4e-4502-a9ec-e54d922d2c00',
-   'ProcessListeners': 0,
-   'Number': 'SR00005250',
-   'UsrDescripcionBienContratado': 'Test',
-   'UsrEmail': 'test@test.com',
-   'UsrTelefono': '123456789',
-   # ... other fields ...
+   "@odata.context": "https://your-environment.creatio.com/0/odata/$metadata#Case/$entity",
+   "Id": "cf8c6558-9e3e-48ca-a237-765b0f54b798",
+   "CreatedOn": "2024-06-17T15:28:32.7013964Z",
+   "CreatedById": "410006e1-ca4e-4502-a9ec-e54d922d2c00",
+   "ModifiedOn": "2024-06-17T15:28:32.7013964Z",
+   "ModifiedById": "410006e1-ca4e-4502-a9ec-e54d922d2c00",
+   "ProcessListeners": 0,
+   "Number": "SR00005250",
+   "UsrDescripcionBienContratado": "Test",
+   "UsrEmail": "test@test.com",
+   "UsrTelefono": "123456789"
+   // ... other fields ...
 }
+
 ```
 
 Creatio returns the created record with the `Id` field. You can use this ID to modify or delete the record later.
@@ -245,7 +260,7 @@ record_id = "cf8c6558-9e3e-48ca-a237-765b0f54b798"
 response = api.modify_collection_data("Case", record_id=record_id, data=payload)
 ```
 
-- Response code: 204 No Content
+- Response code: `204 No Content`
 - Response body: None
 
 The response code 204 indicates that the record has been successfully updated. Creatio does not return a body in this case.
@@ -257,31 +272,31 @@ record_id = "cf8c6558-9e3e-48ca-a237-765b0f54b798"
 response = api.get_collection_data("Case", record_id=record_id)
 ```
 
-- Response code: 200 OK
+- Response code: `200 OK`
 - Response body:
 
-```python
+```json
 {
-   '@odata.context': 'https://your-environment.creatio.com/0/odata/$metadata#Case/$entity',
-   'Id': 'cf8c6558-9e3e-48ca-a237-765b0f54b798',
-   'CreatedOn': '2024-06-17T15:28:32.7013964Z',
-   'CreatedById': '410006e1-ca4e-4502-a9ec-e54d922d2c00',
-   'ModifiedOn': '2024-06-17T15:28:32.7013964Z',
-   'ModifiedById': '410006e1-ca4e-4502-a9ec-e54d922d2c00',
-   'ProcessListeners': 0,
-   'Number': 'SR00005250',
-   'UsrDescripcionBienContratado': 'New test description',
-   'UsrEmail': 'test@test.com',
-   'UsrTelefono': '123456789',
-   # ... other fields ...
+   "@odata.context": "https://your-environment.creatio.com/0/odata/$metadata#Case/$entity",
+   "Id": "cf8c6558-9e3e-48ca-a237-765b0f54b798",
+   "CreatedOn": "2024-06-17T15:28:32.7013964Z",
+   "CreatedById": "410006e1-ca4e-4502-a9ec-e54d922d2c00",
+   "ModifiedOn": "2024-06-17T15:28:32.7013964Z",
+   "ModifiedById": "410006e1-ca4e-4502-a9ec-e54d922d2c00",
+   "ProcessListeners": 0,
+   "Number": "SR00005250",
+   "UsrDescripcionBienContratado": "New test description",
+   "UsrEmail": "test@test.com",
+   "UsrTelefono": "123456789",
+   // ... other fields ...
 }
 ```
 
-As you can see, the field `UsrDescripcionBienContratado` has been updated.
+As you can see, the field `UsrDescripcionBienContratado` has been updated and we have retrieved the last value.
 
 ## Delete a Record from a Collection
 
-- Response code: 204 No Content
+- Response code: `204 No Content`
 - Response body: None
 
 ```python
@@ -289,7 +304,7 @@ record_id = "cf8c6558-9e3e-48ca-a237-765b0f54b798"
 response = api.delete_collection_data("Case", record_id=record_id)
 ```
 
-The response code 204 indicates that the record has been successfully deleted. Creatio does not return a body in this case.
+The response code `204` indicates that the record has been successfully deleted. Creatio does not return a body in this case.
 
 If we try to get the record again, we will get a 404 Not Found response:
 
@@ -298,7 +313,7 @@ record_id = "cf8c6558-9e3e-48ca-a237-765b0f54b798"
 response = api.get_collection_data("Case", record_id=record_id)
 ```
 
-- Response code: 404 Not Found
+- Response code: `404 Not Found`
 - Response body: None
 
 ## Handle information from the API session
