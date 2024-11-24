@@ -83,11 +83,12 @@ class CreatioODataAPI:
         url: str = f"{self.base_url}{endpoint}"
 
         headers: dict[str, str] = {
-            "Accept": "application/json; odata=verbose",
             "Content-Type": "application/json",
             "ForceUseSession": "true",
         }
 
+        if "$metadata" not in endpoint:
+            headers["Accept"] = "application/json; odata=verbose"
         if method == "PUT":
             headers["Content-Type"] = "application/octet-stream"
 
@@ -165,8 +166,16 @@ class CreatioODataAPI:
     def get_collection_data(  # pylint: disable=line-too-long
         self,
         collection: str,
-        params: Optional[dict[str, Any]] = None,
+        params: Optional[dict[str, str | int]] = None,
         record_id: Optional[str] = None,
+        count: Optional[bool] = None,
+        skip: Optional[int] = None,
+        top: Optional[int] = None,
+        select: Optional[str | list[str]] = None,
+        expand: Optional[str | list[str]] = None,
+        value: Optional[str] = None,
+        order_by: Optional[str] = None,
+        filter: Optional[str] = None,
     ) -> requests.models.Response:
         """
         Reference: https://documenter.getpostman.com/view/10204500/SztHX5Qb?version=latest#48a0da23-68ff-4030-89c3-be0e8c634d14
@@ -174,37 +183,70 @@ class CreatioODataAPI:
         Get the specified collection data.
 
         Examples:
-            Get object collection instances:
+            Fetch all items in a collection:
             >>> response = get_collection_data("Collection1")
-            Get an object collection instance by Id:
-            >>> response = get_collection_data("Collection1", record_id="IdValue")
-            Get an object collection instance by Id of another object collection:
-            >>> response = get_collection_data("Collection1(Id)/Collection2")
-            Get a field value of an object collection instance by Id via the $value parameter:
-            >>> response = get_collection_data("Collection1(Id)/Field1/$value")
-            Get the number of instances in an object collection via the $count parameter:
-            >>> response = get_collection_data("Collection1", params={"$count": "true"})
-            Get the number of skipped object collection instances via the $skip parameter:
-            >>> response = get_collection_data("Collection1", params={"$skip": "Value"})
-            Get a set number of object collection instances via the $top parameter:
-            >>> response = get_collection_data("Collection1", params={"$top": "Value"})
-            Get specific fields from object collection instances via the $select parameter:
-            >>> response = get_collection_data("Collection1", params={"$select": "Field1,Field2"})
-            Get an object collection instance by instance Id of another object collection via the $expand parameter:
-            >>> response = get_collection_data("Collection1(Id)", params={"$expand": "Collection2"})
+            Fetch a specific record by ID:
+            >>> response = get_collection_data("Collection1", record_id="123")
+            Fetch a subset of items, skipping the first 10:
+            >>> response = get_collection_data("Collection1", skip=10, top=5)
+            Select specific fields:
+            >>> response = get_collection_data("Collection1", select=["Field1", "Field2"])
+            Expand related entities:
+            >>> response = get_collection_data("Collection1", expand="RelatedCollection")
+            Retrieve the value of a specific field:
+            >>> response = get_collection_data("Collection1", record_id="123", value="Field1")
+            Apply ordering and filtering:
+            >>> response = get_collection_data("Collection1", order_by="Field1 desc", filter="Field2 eq 'Value'")
 
         Args:
-            collection (str): The collection to get.
-            params (Optional[dict[str, Any]], optional): Query parameters for the request.
-            record_id (Optional[str], optional): The ID of the record to get.
+            collection (str): The name of the collection to query.
+            record_id (Optional[str], optional): The ID of a specific record to retrieve.
+            count (Optional[bool], optional): Include the total count of matching items
+                in the response (`$count`).
+            skip (Optional[int], optional): Skip the specified number of items (`$skip`).
+            top (Optional[int], optional): Limit the number of items returned (`$top`).
+            select (Optional[str | list[str]], optional): Specify the fields to include
+                in the response (`$select`).
+            expand (Optional[str | list[str]], optional): Include related entities in the
+                response (`$expand`).
+            value (Optional[str], optional): Retrieve the value of a specific field
+                using the `$value` keyword.
+            order_by (Optional[str], optional): Define the order of items in the response
+                (`$orderby`).
+            filter (Optional[str], optional): Apply a filter to the items in the response
+                (`$filter`).
+            params (Optional[dict[str, Any]], optional): Additional query parameters. Use
+                with caution as it overrides explicit arguments.
 
         Returns:
-            requests.models.Response: The response from the case list request.
+            requests.models.Response: The HTTP response object containing the requested
+                data.
         """
         url: str = f"/0/odata/{collection}"
 
         if record_id:
             url += f"({record_id})"
+
+        if value:
+            url += f"/{value}/$value"
+
+        # Build query parameters
+        if not params:
+            params = {}
+        if count is not None:
+            params["$count"] = str(count).lower()
+        if skip is not None:
+            params["$skip"] = skip
+        if top is not None:
+            params["$top"] = top
+        if select:
+            params["$select"] = ",".join(select) if isinstance(select, list) else select
+        if expand:
+            params["$expand"] = ",".join(expand) if isinstance(expand, list) else expand
+        if order_by:
+            params["$orderby"] = order_by
+        if filter:
+            params["$filter"] = filter
 
         return self._make_request("GET", url, params=params)
 
