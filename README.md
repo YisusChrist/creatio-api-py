@@ -296,13 +296,13 @@ As you can see, the field `UsrDescripcionBienContratado` has been updated and we
 
 ## Delete a Record from a Collection
 
-- Response code: `204 No Content`
-- Response body: None
-
 ```python
 record_id = "cf8c6558-9e3e-48ca-a237-765b0f54b798"
 response = api.delete_collection_data("Case", record_id=record_id)
 ```
+
+- Response code: `204 No Content`
+- Response body: None
 
 The response code `204` indicates that the record has been successfully deleted. Creatio does not return a body in this case.
 
