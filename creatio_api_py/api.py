@@ -1,13 +1,8 @@
-"""
-@file     creatio-odata.py
-@license  GNU General Public License v3.0
-@author   Alejandro Gonzalez Momblan (alejandro.gonzalez.momblan@evoluciona.es)
-@desc     This script is used to test the OData API of Creatio.
-"""
+"""API module for the Creatio OData API."""
 
 import json
 import os
-from contextlib import suppress
+from pathlib import Path
 from typing import Any
 from typing import Optional
 
@@ -30,6 +25,7 @@ class CreatioODataAPI:
     base_url: HttpUrl
     debug: bool = False
     cache: bool = False
+    cookies_file: Path = Path(".creatio_session_cookies.json")
     __api_calls: int = Field(default=0, init=False)
     __session: requests.Session | requests_cache.CachedSession = Field(init=False)
 
@@ -42,12 +38,11 @@ class CreatioODataAPI:
             self.__session = requests_cache.CachedSession(
                 backend=cached_backend, expire_after=3600
             )
-            if self.debug:
-                logger.debug("Using requests-cache for session.")
         else:
             self.__session = requests.Session()
-            if self.debug:
-                logger.debug("Using standard requests session.")
+
+        if self.debug:
+            logger.debug(f"Session initialized with cache={self.cache}.")
 
     @property
     def api_calls(self) -> int:
@@ -59,6 +54,69 @@ class CreatioODataAPI:
         """Property to get the session cookies."""
         result: dict[str, Any] = self.__session.cookies.get_dict()
         return result
+
+    def _load_session_cookie(self, username: str) -> bool:
+        """
+        Load a session cookie for a specific username, if available.
+
+        Args:
+            username (str): The username whose session cookie to load.
+
+        Returns:
+            bool: True if a valid session cookie was loaded, False otherwise.
+        """
+        if not os.path.exists(self.cookies_file):
+            return False
+
+        with open(self.cookies_file, "r") as file:
+            cookies_data = json.load(file)
+
+        url = str(self.base_url)
+        if url not in cookies_data:
+            return False
+        if username not in cookies_data[url]:
+            return False
+
+        # Load the cookies into the session
+        self.__session.cookies.update(cookies_data[url][username])
+        if self.debug:
+            logger.debug(f"Session cookie loaded for URL {url} and user {username}.")
+
+        # TODO: Find a more reliable and efficient way to check if the session
+        # cookie is still valid
+        try:
+            # Check if the session cookie is still valid
+            response: requests.Response = self.get_collection_data("Account/$count")
+        except requests.exceptions.TooManyRedirects:
+            return False
+        # Check if the request was redirected to the login page
+        return False if response.history else True
+
+    def _store_session_cookie(self, username: str) -> None:
+        """
+        Store the session cookie for a specific username in a cache file.
+
+        Args:
+            username (str): The username associated with the session cookie.
+        """
+        cookies_data: dict[str, dict[str, Any]] = {}
+
+        # Load existing cookies if the file exists
+        if os.path.exists(self.cookies_file):
+            with open(self.cookies_file, "r") as file:
+                cookies_data = json.load(file)
+
+        # Update cookies for the given username
+        url = str(self.base_url)
+        cookies_data[url] = {
+            username: self.__session.cookies.get_dict(),
+        }
+
+        # Save updated cookies back to the file
+        with open(self.cookies_file, "w") as file:
+            json.dump(cookies_data, file)
+        if self.debug:
+            logger.debug(f"Session cookie stored for user {username}.")
 
     def _make_request(
         self,
@@ -92,22 +150,33 @@ class CreatioODataAPI:
         if method == "PUT":
             headers["Content-Type"] = "application/octet-stream"
 
-        with suppress(Exception):
+        bmpcsrf: str | None = self.__session.cookies.get_dict().get("BPMCSRF")
+        if bmpcsrf:
             # Add the BPMCSRF cookie to the headers
-            headers["BPMCSRF"] = self.__session.cookies.get_dict()["BPMCSRF"]
+            headers["BPMCSRF"] = bmpcsrf
 
-        payload = json.dumps(data) if data else None
+        payload: str | None = json.dumps(data) if data else None
 
         try:
             response: requests.Response = self.__session.request(
                 method, url, headers=headers, data=payload, params=params
             )
+            response.raise_for_status()
         except requests.exceptions.RequestException as e:
             print_exception(e)
             raise
 
         if self.debug:
             print_response_summary(response)
+
+        # If the response contains new cookies, update the session cookies
+        if response.cookies and endpoint != "ServiceModel/AuthService.svc/Login":
+            # Store the new cookies in the session
+            self.__session.cookies.update(response.cookies)
+            # TODO: Store the cookies with the correct username
+            self._store_session_cookie("Supervisor")
+            if self.debug:
+                logger.debug("New cookies stored in the session.")
 
         self.__api_calls += 1  # Increment the API calls counter
 
@@ -145,21 +214,34 @@ class CreatioODataAPI:
             logger.error("Username or password empty")
             raise ValueError("Username or password empty")
 
+        # Attempt to load a cached session cookie for this username
+        if self._load_session_cookie(username):
+            if self.debug:
+                logger.debug(f"Using cached session cookie for user {username}.")
+            return requests.Response()  # Simulate successful response
+        else:
+            logger.info("No valid session cookie found")
+            # Clear the session cookies
+            self.__session.cookies.clear()
+
         data: dict[str, str] = {
             "UserName": username,
             "UserPassword": password,
         }
 
         response: requests.Response = self._make_request(
-            "POST", "/ServiceModel/AuthService.svc/Login", data=data
+            "POST", "ServiceModel/AuthService.svc/Login", data=data
         )
-        if response.json().get("Exception"):
+        response_json: dict[str, Any] = response.json()
+        if response_json.get("Exception"):
             logger.error("Authentication failed")
-            raise ValueError("Authentication failed", response.json())
+            raise ValueError("Authentication failed", response_json)
 
         # Extract the cookie from the response
-        if response:
-            self.__session.cookies.update(response.cookies)
+        self.__session.cookies.update(response.cookies)
+
+        # Save the cookies persistently
+        self._store_session_cookie(username)
 
         return response
 
@@ -222,11 +304,10 @@ class CreatioODataAPI:
             requests.models.Response: The HTTP response object containing the requested
                 data.
         """
-        url: str = f"/0/odata/{collection}"
+        url: str = f"0/odata/{collection}"
 
         if record_id:
             url += f"({record_id})"
-
         if value:
             url += f"/{value}/$value"
 
@@ -271,7 +352,7 @@ class CreatioODataAPI:
         Returns:
             requests.models.Response: The response from the case list request.
         """
-        return self._make_request("POST", f"/0/odata/{collection}", data=data)
+        return self._make_request("POST", f"0/odata/{collection}", data=data)
 
     def modify_collection_data(  # pylint: disable=line-too-long
         self,
@@ -297,7 +378,7 @@ class CreatioODataAPI:
             requests.models.Response: The response from the case list request.
         """
         return self._make_request(
-            "PATCH", f"/0/odata/{collection}({record_id})", data=data
+            "PATCH", f"0/odata/{collection}({record_id})", data=data
         )
 
     def delete_collection_data(  # pylint: disable=line-too-long
@@ -318,4 +399,4 @@ class CreatioODataAPI:
         Returns:
             requests.models.Response: The response from the case list request.
         """
-        return self._make_request("DELETE", f"/0/odata/{collection}({record_id})")
+        return self._make_request("DELETE", f"0/odata/{collection}({record_id})")
