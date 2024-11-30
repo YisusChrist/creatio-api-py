@@ -14,6 +14,7 @@ from pydantic import HttpUrl
 from pydantic.dataclasses import dataclass
 from requests_pprint import print_response_summary
 
+from creatio_api_py.encryption import EncryptedCookieManager
 from creatio_api_py.logs import logger
 from creatio_api_py.utils import print_exception
 
@@ -25,7 +26,7 @@ class CreatioODataAPI:
     base_url: HttpUrl
     debug: bool = False
     cache: bool = False
-    cookies_file: Path = Path(".creatio_session_cookies.json")
+    cookies_file: Path = Path(".creatio_sessions.bin")
     __api_calls: int = Field(default=0, init=False)
     __session: requests.Session | requests_cache.CachedSession = Field(init=False)
     __username: str = ""
@@ -45,6 +46,14 @@ class CreatioODataAPI:
         if self.debug:
             logger.debug(f"Session initialized with cache={self.cache}.")
 
+        self._load_env()
+        # Load the encryption key from an environment variable
+        encryption_key: str | None = os.getenv("SESSIONS_ENCRYPTION_KEY")
+        if not encryption_key:
+            raise ValueError("Encryption key is not set in the environment.")
+
+        self.__encryption_manager = EncryptedCookieManager(encryption_key.encode())
+
     @property
     def api_calls(self) -> int:
         """Property to get the number of API calls performed."""
@@ -54,6 +63,25 @@ class CreatioODataAPI:
     def session_cookies(self) -> dict[str, Any]:
         """Property to get the session cookies."""
         return self.__session.cookies.get_dict()
+
+    def _read_encrypted_cookies(self) -> dict[str, dict[str, Any]]:
+        """
+        Read and decrypt the encrypted cookies file.
+
+        Returns:
+            dict: The decrypted cookies data, or an empty dictionary if the file
+                does not exist or decryption fails.
+        """
+        if not self.cookies_file.exists():
+            return {}
+
+        try:
+            encrypted_data = self.cookies_file.read_bytes()
+            return self.__encryption_manager.decrypt(encrypted_data)
+        except Exception as e:
+            if self.debug:
+                logger.warning(f"Failed to read or decrypt cookies file: {e}")
+            return {}
 
     def _load_session_cookie(self, username: str) -> bool:
         """
@@ -65,16 +93,9 @@ class CreatioODataAPI:
         Returns:
             bool: True if a valid session cookie was loaded, False otherwise.
         """
-        if not os.path.exists(self.cookies_file):
-            return False
-
-        with open(self.cookies_file, "r") as file:
-            cookies_data = json.load(file)
-
+        cookies_data: dict[str, dict[str, Any]] = self._read_encrypted_cookies()
         url = str(self.base_url)
-        if url not in cookies_data:
-            return False
-        if username not in cookies_data[url]:
+        if url not in cookies_data or username not in cookies_data[url]:
             return False
 
         # Load the cookies into the session
@@ -99,23 +120,21 @@ class CreatioODataAPI:
         Args:
             username (str): The username associated with the session cookie.
         """
-        cookies_data: dict[str, dict[str, Any]] = {}
-
-        # Load existing cookies if the file exists
-        if os.path.exists(self.cookies_file):
-            with open(self.cookies_file, "r") as file:
-                cookies_data = json.load(file)
-
+        cookies_data: dict[str, dict[str, Any]] = self._read_encrypted_cookies()
         # Update cookies for the given username
         url = str(self.base_url)
         cookies_data[url].setdefault(username, {})
         cookies_data[url][username] = self.__session.cookies.get_dict()
 
-        # Save updated cookies back to the file
-        with open(self.cookies_file, "w") as file:
-            json.dump(cookies_data, file)
-        if self.debug:
-            logger.debug(f"Session cookie stored for user {username}.")
+        try:
+            # Encrypt and save the updated cookies
+            encrypted_data: bytes = self.__encryption_manager.encrypt(cookies_data)
+            self.cookies_file.write_bytes(encrypted_data)
+            if self.debug:
+                logger.debug(f"Session cookie stored for user {username}.")
+        except Exception as e:
+            if self.debug:
+                logger.error(f"Failed to store session cookie: {e}")
 
     def _make_request(
         self,
@@ -205,18 +224,17 @@ class CreatioODataAPI:
             requests.models.Response: The response from the authentication request.
         """
         if not username and not password:
-            self._load_env()
             username = os.getenv("CREATIO_USERNAME", "")
             password = os.getenv("CREATIO_PASSWORD", "")
         if not username or not password:
             logger.error("Username or password empty")
             raise ValueError("Username or password empty")
 
+        self.__username = username
         # Attempt to load a cached session cookie for this username
         if self._load_session_cookie(username):
             if self.debug:
                 logger.debug(f"Using cached session cookie for user {username}.")
-            self.__username = username
             return requests.Response()  # Simulate successful response
         else:
             logger.info("No valid session cookie found")
@@ -238,7 +256,6 @@ class CreatioODataAPI:
 
         # Extract the cookie from the response
         self.__session.cookies.update(response.cookies)
-        self.__username = username
         self._store_session_cookie(username)
 
         return response
