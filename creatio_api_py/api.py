@@ -30,6 +30,7 @@ class CreatioODataAPI:
     __api_calls: int = Field(default=0, init=False)
     __session: requests.Session | requests_cache.CachedSession = Field(init=False)
     __username: str = ""
+    __encryption_manager: EncryptedCookieManager = Field(init=False)
 
     def __post_init__(self) -> None:
         """Initialize the session based on the cache setting."""
@@ -83,6 +84,17 @@ class CreatioODataAPI:
                 logger.warning(f"Failed to read or decrypt cookies file: {e}")
             return {}
 
+    def _update_cookies_file(self, cookies_data: dict[str, dict[str, Any]]) -> None:
+        """Encrypt and save cookies data to the file."""
+        try:
+            encrypted_data = self.__encryption_manager.encrypt(cookies_data)
+            self.cookies_file.write_bytes(encrypted_data)
+            if self.debug:
+                logger.debug("Cookies data successfully updated.")
+        except Exception as e:
+            if self.debug:
+                logger.error(f"Failed to update cookies file: {e}")
+
     def _load_session_cookie(self, username: str) -> bool:
         """
         Load a session cookie for a specific username, if available.
@@ -105,13 +117,13 @@ class CreatioODataAPI:
 
         # TODO: Find a more reliable and efficient way to check if the session
         # cookie is still valid
+        # Check if the session cookie is still valid
         try:
-            # Check if the session cookie is still valid
             response: requests.Response = self.get_collection_data("Account/$count")
+            # Check if the request was redirected to the login page
+            return not response.history
         except requests.exceptions.TooManyRedirects:
             return False
-        # Check if the request was redirected to the login page
-        return False if response.history else True
 
     def _store_session_cookie(self, username: str) -> None:
         """
@@ -125,16 +137,26 @@ class CreatioODataAPI:
         url = str(self.base_url)
         cookies_data[url].setdefault(username, {})
         cookies_data[url][username] = self.__session.cookies.get_dict()
+        self._update_cookies_file(cookies_data)
 
-        try:
-            # Encrypt and save the updated cookies
-            encrypted_data: bytes = self.__encryption_manager.encrypt(cookies_data)
-            self.cookies_file.write_bytes(encrypted_data)
-            if self.debug:
-                logger.debug(f"Session cookie stored for user {username}.")
-        except Exception as e:
-            if self.debug:
-                logger.error(f"Failed to store session cookie: {e}")
+    def _build_headers(self, endpoint: str, method: str) -> dict[str, str]:
+        """Construct request headers."""
+        headers: dict[str, str] = {
+            "Content-Type": "application/json",
+            "ForceUseSession": "true",
+        }
+
+        if "$metadata" not in endpoint:
+            headers["Accept"] = "application/json; odata=verbose"
+        if method == "PUT":
+            headers["Content-Type"] = "application/octet-stream"
+
+        bmpcsrf: str | None = self.__session.cookies.get_dict().get("BPMCSRF")
+        if bmpcsrf:
+            # Add the BPMCSRF cookie to the headers
+            headers["BPMCSRF"] = bmpcsrf
+
+        return headers
 
     def _make_request(
         self,
@@ -157,22 +179,7 @@ class CreatioODataAPI:
             requests.models.Response: The response from the HTTP request.
         """
         url: str = f"{self.base_url}{endpoint}"
-
-        headers: dict[str, str] = {
-            "Content-Type": "application/json",
-            "ForceUseSession": "true",
-        }
-
-        if "$metadata" not in endpoint:
-            headers["Accept"] = "application/json; odata=verbose"
-        if method == "PUT":
-            headers["Content-Type"] = "application/octet-stream"
-
-        bmpcsrf: str | None = self.__session.cookies.get_dict().get("BPMCSRF")
-        if bmpcsrf:
-            # Add the BPMCSRF cookie to the headers
-            headers["BPMCSRF"] = bmpcsrf
-
+        headers: dict[str, str] = self._build_headers(endpoint, method)
         payload: str | None = json.dumps(data) if data else None
 
         try:
@@ -189,13 +196,12 @@ class CreatioODataAPI:
 
         # If the response contains new cookies, update the session cookies
         if response.cookies and endpoint != "ServiceModel/AuthService.svc/Login":
-            # Store the new cookies in the session
             self.__session.cookies.update(response.cookies)
             self._store_session_cookie(self.__username)
             if self.debug:
                 logger.debug("New cookies stored in the session.")
 
-        self.__api_calls += 1  # Increment the API calls counter
+        self.__api_calls += 1
 
         return response
 
@@ -223,12 +229,12 @@ class CreatioODataAPI:
         Returns:
             requests.models.Response: The response from the authentication request.
         """
-        if not username and not password:
-            username = os.getenv("CREATIO_USERNAME", "")
-            password = os.getenv("CREATIO_PASSWORD", "")
+        username = username or os.getenv("CREATIO_USERNAME", "")
+        password = password or os.getenv("CREATIO_PASSWORD", "")
         if not username or not password:
-            logger.error("Username or password empty")
-            raise ValueError("Username or password empty")
+            error_message = "Username or password empty"
+            logger.error(error_message)
+            raise ValueError(error_message)
 
         self.__username = username
         # Attempt to load a cached session cookie for this username
@@ -236,23 +242,20 @@ class CreatioODataAPI:
             if self.debug:
                 logger.debug(f"Using cached session cookie for user {username}.")
             return requests.Response()  # Simulate successful response
-        else:
-            logger.info("No valid session cookie found")
-            # Clear the session cookies
-            self.__session.cookies.clear()
 
-        data: dict[str, str] = {
-            "UserName": username,
-            "UserPassword": password,
-        }
+        logger.info("No valid session cookie found")
+        # Clear the session cookies
+        self.__session.cookies.clear()
+        data: dict[str, str] = {"UserName": username, "UserPassword": password}
 
         response: requests.Response = self._make_request(
             "POST", "ServiceModel/AuthService.svc/Login", data=data
         )
         response_json: dict[str, Any] = response.json()
         if response_json.get("Exception"):
-            logger.error("Authentication failed")
-            raise ValueError("Authentication failed", response_json)
+            error_message = response_json["Exception"]["Message"]
+            logger.error(error_message)
+            raise ValueError(error_message)
 
         # Extract the cookie from the response
         self.__session.cookies.update(response.cookies)
