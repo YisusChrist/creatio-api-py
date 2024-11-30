@@ -28,6 +28,7 @@ class CreatioODataAPI:
     cookies_file: Path = Path(".creatio_session_cookies.json")
     __api_calls: int = Field(default=0, init=False)
     __session: requests.Session | requests_cache.CachedSession = Field(init=False)
+    __username: str = ""
 
     def __post_init__(self) -> None:
         """Initialize the session based on the cache setting."""
@@ -52,8 +53,7 @@ class CreatioODataAPI:
     @property
     def session_cookies(self) -> dict[str, Any]:
         """Property to get the session cookies."""
-        result: dict[str, Any] = self.__session.cookies.get_dict()
-        return result
+        return self.__session.cookies.get_dict()
 
     def _load_session_cookie(self, username: str) -> bool:
         """
@@ -108,9 +108,8 @@ class CreatioODataAPI:
 
         # Update cookies for the given username
         url = str(self.base_url)
-        cookies_data[url] = {
-            username: self.__session.cookies.get_dict(),
-        }
+        cookies_data[url].setdefault(username, {})
+        cookies_data[url][username] = self.__session.cookies.get_dict()
 
         # Save updated cookies back to the file
         with open(self.cookies_file, "w") as file:
@@ -173,8 +172,7 @@ class CreatioODataAPI:
         if response.cookies and endpoint != "ServiceModel/AuthService.svc/Login":
             # Store the new cookies in the session
             self.__session.cookies.update(response.cookies)
-            # TODO: Store the cookies with the correct username
-            self._store_session_cookie("Supervisor")
+            self._store_session_cookie(self.__username)
             if self.debug:
                 logger.debug("New cookies stored in the session.")
 
@@ -218,6 +216,7 @@ class CreatioODataAPI:
         if self._load_session_cookie(username):
             if self.debug:
                 logger.debug(f"Using cached session cookie for user {username}.")
+            self.__username = username
             return requests.Response()  # Simulate successful response
         else:
             logger.info("No valid session cookie found")
@@ -239,8 +238,7 @@ class CreatioODataAPI:
 
         # Extract the cookie from the response
         self.__session.cookies.update(response.cookies)
-
-        # Save the cookies persistently
+        self.__username = username
         self._store_session_cookie(username)
 
         return response
