@@ -118,7 +118,7 @@ If you prefer to install the program manually, follow these steps:
 2. Install the package:
 
    ```sh
-   poetry install --only-main
+   poetry install --only main
    ```
 
 ## Uninstall
