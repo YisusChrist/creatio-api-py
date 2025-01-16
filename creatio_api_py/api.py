@@ -2,6 +2,7 @@
 
 import json
 import os
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 from typing import Optional
@@ -133,11 +134,16 @@ class CreatioODataAPI:
             username (str): The username associated with the session cookie.
         """
         cookies_data: dict[str, dict[str, Any]] = self._read_encrypted_cookies()
+
+        # Create a nested dictionary to store cookies for multiple URLs and usernames
+        cookies_data = defaultdict(lambda: defaultdict(dict))
+
         # Update cookies for the given username
         url = str(self.base_url)
-        cookies_data[url].setdefault(username, {})
         cookies_data[url][username] = self.__session.cookies.get_dict()
-        self._update_cookies_file(cookies_data)
+
+        # Update the cookies file with the modified data
+        self._update_cookies_file(dict(cookies_data))
 
     def _build_headers(self, endpoint: str, method: str) -> dict[str, str]:
         """Construct request headers."""
