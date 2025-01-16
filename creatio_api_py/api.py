@@ -17,6 +17,7 @@ from requests_pprint import print_response_summary
 
 from creatio_api_py.encryption import EncryptedCookieManager
 from creatio_api_py.logs import logger
+from creatio_api_py.utils import parse_content_disposition
 from creatio_api_py.utils import print_exception
 
 
@@ -427,3 +428,32 @@ class CreatioODataAPI:
             requests.models.Response: The response from the case list request.
         """
         return self._make_request("DELETE", f"0/odata/{collection}({record_id})")
+
+    def download_file(self, collection: str, file_id: str) -> requests.models.Response:
+        """
+        Download a file from Creatio.
+
+        Args:
+            file_id (str): The ID of the file to download.
+
+        Returns:
+            requests.models.Response: The response from the file download request.
+        """
+        response: requests.Response = self._make_request(
+            "GET", f"0/rest/FileService/Download/{collection}/{file_id}"
+        )
+        response.raise_for_status()
+
+        # Get the file name from the response headers
+        file_name: str | None = parse_content_disposition(
+            response.headers.get("Content-Disposition", "")
+        )
+        if not file_name:
+            raise ValueError(
+                "Could not determine the file name from the response headers"
+            )
+
+        with open(file_name, "wb") as f:
+            f.write(response.content)
+
+        return response
