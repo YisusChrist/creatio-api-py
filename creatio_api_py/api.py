@@ -274,6 +274,7 @@ class CreatioODataAPI:
         collection: str,
         params: Optional[dict[str, str | int]] = None,
         record_id: Optional[str] = None,
+        only_count: Optional[bool] = None,
         count: Optional[bool] = None,
         skip: Optional[int] = None,
         top: Optional[int] = None,
@@ -334,6 +335,8 @@ class CreatioODataAPI:
             url += f"({record_id})"
         if value:
             url += f"/{value}/$value"
+        elif only_count:
+            url += "/$count"
 
         # Build query parameters
         if not params:
