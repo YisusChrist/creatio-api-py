@@ -24,12 +24,14 @@ repository = "https://github.com/yisuschrist/creatio-api-py"
 [tool.poetry.group.dev.dependencies]
 bandit = "^1.7.7"
 black = "^24.2.0"
+coverage = "^7.4.1"
 mypy = "^1.8.0"
 pre-commit = "^3.6.1"
 pylint = "^3.0.3"
 pytest = "^8.0.0"
 pyupgrade = "^3.15.0"
-coverage = "^7.4.1"
+
+[tool.poetry.group.types.dependencies]
 types-requests = "^2.32.0.20240712"
 
 [tool.coverage.paths]
