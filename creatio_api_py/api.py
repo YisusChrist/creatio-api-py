@@ -429,12 +429,17 @@ class CreatioODataAPI:
         """
         return self._make_request("DELETE", f"0/odata/{collection}({record_id})")
 
-    def download_file(self, collection: str, file_id: str) -> requests.models.Response:
+    def download_file(
+        self, collection: str, file_id: str, path: str | Path = "."
+    ) -> requests.models.Response:
         """
         Download a file from Creatio.
 
         Args:
+            collection (str): The collection containing the file.
             file_id (str): The ID of the file to download.
+            path (str | Path): The path to save the downloaded file. Defaults to the
+                current directory.
 
         Returns:
             requests.models.Response: The response from the file download request.
@@ -453,7 +458,8 @@ class CreatioODataAPI:
                 "Could not determine the file name from the response headers"
             )
 
-        with open(file_name, "wb") as f:
+        final_path: Path = path if isinstance(path, Path) else Path(path)
+        with open(final_path / file_name, "wb") as f:
             f.write(response.content)
 
         return response
