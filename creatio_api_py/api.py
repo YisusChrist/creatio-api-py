@@ -148,10 +148,7 @@ class CreatioODataAPI:
 
     def _build_headers(self, endpoint: str, method: str) -> dict[str, str]:
         """Construct request headers."""
-        headers: dict[str, str] = {
-            "Content-Type": "application/json",
-            "ForceUseSession": "true",
-        }
+        headers: dict[str, str] = {"ForceUseSession": "true"}
 
         if "$metadata" not in endpoint:
             headers["Accept"] = "application/json; odata=verbose"
