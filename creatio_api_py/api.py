@@ -169,8 +169,7 @@ class CreatioODataAPI:
         self,
         method: str,
         endpoint: str,
-        data: Optional[dict[str, Any]] = None,
-        params: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
     ) -> requests.models.Response:
         """
         Make a generic HTTP request to the OData service.
@@ -178,28 +177,26 @@ class CreatioODataAPI:
         Args:
             method (str): HTTP method (GET, POST, PATCH, etc.).
             endpoint (str): The API endpoint to request.
-            data (Optional[dict[str, Any]], optional): The request data (for POST
-                and PATCH requests).
-            params (Optional[dict[str, Any]], optional): Query parameters for the request.
+            **kwargs (Any): Additional keyword arguments to pass to the request
 
         Returns:
             requests.models.Response: The response from the HTTP request.
         """
         url: str = f"{self.base_url}{endpoint}"
         headers: dict[str, str] = self._build_headers(endpoint, method)
-        payload: str | None = json.dumps(data) if data else None
 
         try:
             response: requests.Response = self.__session.request(
-                method, url, headers=headers, data=payload, params=params
+                method, url, headers=headers, **kwargs
             )
+
+            if self.debug:
+                print_response_summary(response)
+
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             print_exception(e)
             raise
-
-        if self.debug:
-            print_response_summary(response)
 
         # If the response contains new cookies, update the session cookies
         if response.cookies and endpoint != "ServiceModel/AuthService.svc/Login":
@@ -256,7 +253,7 @@ class CreatioODataAPI:
         data: dict[str, str] = {"UserName": username, "UserPassword": password}
 
         response: requests.Response = self._make_request(
-            "POST", "ServiceModel/AuthService.svc/Login", data=data
+            "POST", "ServiceModel/AuthService.svc/Login", json=data
         )
         response_json: dict[str, Any] = response.json()
         if response_json.get("Exception"):
@@ -380,7 +377,7 @@ class CreatioODataAPI:
         Returns:
             requests.models.Response: The response from the case list request.
         """
-        return self._make_request("POST", f"0/odata/{collection}", data=data)
+        return self._make_request("POST", f"0/odata/{collection}", json=data)
 
     def modify_collection_data(  # pylint: disable=line-too-long
         self,
