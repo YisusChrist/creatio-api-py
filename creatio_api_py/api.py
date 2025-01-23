@@ -166,6 +166,7 @@ class CreatioODataAPI:
         self,
         method: str,
         endpoint: str,
+        headers: Optional[dict[str, str]] = None,
         **kwargs: Any,
     ) -> requests.models.Response:
         """
@@ -180,7 +181,9 @@ class CreatioODataAPI:
             requests.models.Response: The response from the HTTP request.
         """
         url: str = f"{self.base_url}{endpoint}"
-        headers: dict[str, str] = self._build_headers(endpoint, method)
+        if not headers:
+            headers = {}
+        headers.update(self._build_headers(endpoint, method))
 
         try:
             response: requests.Response = self.__session.request(
@@ -455,5 +458,72 @@ class CreatioODataAPI:
         final_path: Path = path if isinstance(path, Path) else Path(path)
         with open(final_path / file_name, "wb") as f:
             f.write(response.content)
+
+        return response
+
+    def upload_file(
+        self, collection: str, entity_id: str, file_path: str | Path
+    ) -> requests.models.Response:
+        """
+        Upload a file to Creatio.
+
+        Args:
+            collection (str): The collection to upload the file to.
+            entity_id (str): The ID of the entity to associate the file with.
+            file_path (str | Path): The path to the file to upload.
+
+        Returns:
+            requests.models.Response: The response from the file upload request.
+        """
+        # Read the file data to ensure the file is valid
+        file_path = file_path if isinstance(file_path, Path) else Path(file_path)
+        with open(file_path, "rb") as f:
+            data: bytes = f.read()
+
+        file_length: int = len(data)
+        parent_collection: str = collection[: -len("File")]
+
+        # Create the file in the collection table
+        payload: dict[str, Any] = {
+            "Name": file_path.name,
+            f"{parent_collection}Id": entity_id,
+            "Size": file_length,
+            "TotalSize": file_length,
+            "TypeId": "529bc2f8-0ee0-df11-971b-001d60e938c6",
+        }
+        response: requests.Response = self.add_collection_data(collection, data=payload)
+        response.raise_for_status()
+
+        # Get the file ID from the response
+        file_id: str = response.json().get("Id")
+        if not file_id:
+            raise ValueError("Could not determine the file ID from the response")
+
+        content_type = "application/pdf"
+        params: dict[str, str | int] = {
+            "fileId": file_id,
+            "totalFileLength": file_length,
+            #"mimeType": content_type,
+            "fileName": file_path.name,
+            "columnName": "Data",
+            "entitySchemaName": collection,
+            "parentColumnName": parent_collection,
+            "parentColumnValue": entity_id,
+        }
+
+        headers: dict[str, str] = {
+            "Content-Type": content_type,
+            "Content-Disposition": f"attachment; filename={file_path.name}",
+        }
+
+        # TODO: Fix this call, currently returns a InvalidFileSizeException error
+        # Probably related to content-type header and mimeType value
+        response = self._make_request(
+            "POST",
+            f"0/rest/FileApiService/UploadFile",
+            params=params,
+            data=data,
+        )
+        response.raise_for_status()
 
         return response
