@@ -57,6 +57,7 @@ This Python library is designed for testing the OData API of Creatio. It include
   - [Get Data from a Collection](#get-data-from-a-collection)
   - [Delete a Record from a Collection](#delete-a-record-from-a-collection)
   - [Handle information from the API session](#handle-information-from-the-api-session)
+  - [Download a file from a Collection's attachments](#download-a-file-from-a-collections-attachments)
 - [Contributors](#contributors)
   - [How do I contribute to creatio-api-py?](#how-do-i-contribute-to-creatio-api-py)
 - [License](#license)
@@ -333,6 +334,23 @@ Additionally, you can modify the object's base url if needed:
 
 ```python
 api.base_url = "https://another-environment.creatio.com"
+```
+
+## Download a file from a Collection's attachments
+
+```python
+file_id = "9dc61894-a14c-dff5-b4ff-6bca9a26018d"
+api.download_file("ContactFile", file_id=file_id)
+```
+
+- Response code: `200 OK`
+- Response body: The file content
+
+Additionally, you can specify the path where the file will be saved:
+
+```python
+file_id = "9dc61894-a14c-dff5-b4ff-6bca9a26018d"
+api.download_file("ContactFile", file_id=file_id, path="path/to/save/file")
 ```
 
 # Contributors
