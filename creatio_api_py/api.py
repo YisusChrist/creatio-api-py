@@ -1,6 +1,6 @@
 """API module for the Creatio OData API."""
 
-import json
+import mimetypes
 import os
 from collections import defaultdict
 from pathlib import Path
@@ -31,7 +31,7 @@ class CreatioODataAPI:
     cookies_file: Path = Path(".creatio_sessions.bin")
     __api_calls: int = Field(default=0, init=False)
     __session: requests.Session | requests_cache.CachedSession = Field(init=False)
-    __username: str = ""
+    __username: str = Field(default="", init=False)
     __encryption_manager: EncryptedCookieManager = Field(init=False)
 
     def __post_init__(self) -> None:
@@ -499,11 +499,11 @@ class CreatioODataAPI:
         if not file_id:
             raise ValueError("Could not determine the file ID from the response")
 
-        content_type = "application/pdf"
-        params: dict[str, str | int] = {
+        mime_type: str | None = mimetypes.guess_type(file_path)[0]
+        params: dict[str, str | int | None] = {
             "fileId": file_id,
             "totalFileLength": file_length,
-            #"mimeType": content_type,
+            "mimeType": mime_type,
             "fileName": file_path.name,
             "columnName": "Data",
             "entitySchemaName": collection,
@@ -512,18 +512,17 @@ class CreatioODataAPI:
         }
 
         headers: dict[str, str] = {
-            "Content-Type": content_type,
+            "Content-Type": "application/octet-stream",
             "Content-Disposition": f"attachment; filename={file_path.name}",
+            "Content-Range": f"bytes 0-{file_length - 1}/{file_length}",
         }
-
-        # TODO: Fix this call, currently returns a InvalidFileSizeException error
-        # Probably related to content-type header and mimeType value
+        
         response = self._make_request(
             "POST",
             f"0/rest/FileApiService/UploadFile",
+            headers=headers,
             params=params,
             data=data,
         )
-        response.raise_for_status()
 
         return response
