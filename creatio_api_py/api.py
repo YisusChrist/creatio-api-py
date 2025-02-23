@@ -185,18 +185,14 @@ class CreatioODataAPI:
             headers = {}
         headers.update(self._build_headers(endpoint, method))
 
-        try:
-            response: requests.Response = self.__session.request(
-                method, url, headers=headers, **kwargs
-            )
+        response: requests.Response = self.__session.request(
+            method, url, headers=headers, **kwargs
+        )
 
-            if self.debug:
-                print_response_summary(response)
+        if self.debug:
+            print_response_summary(response)
 
-            response.raise_for_status()
-        except requests.exceptions.RequestException as e:
-            print_exception(e)
-            raise
+        response.raise_for_status()
 
         # If the response contains new cookies, update the session cookies
         if response.cookies and endpoint != "ServiceModel/AuthService.svc/Login":
@@ -472,6 +468,10 @@ class CreatioODataAPI:
             entity_id (str): The ID of the entity to associate the file with.
             file_path (str | Path): The path to the file to upload.
 
+        Raises:
+            ValueError: If the file ID cannot be determined from the response.
+            RequestException: If the file upload request fails.
+
         Returns:
             requests.models.Response: The response from the file upload request.
         """
@@ -516,13 +516,21 @@ class CreatioODataAPI:
             "Content-Disposition": f"attachment; filename={file_path.name}",
             "Content-Range": f"bytes 0-{file_length - 1}/{file_length}",
         }
-        
-        response = self._make_request(
-            "POST",
-            f"0/rest/FileApiService/UploadFile",
-            headers=headers,
-            params=params,
-            data=data,
-        )
+
+        try:
+            response = self._make_request(
+                "POST",
+                f"0/rest/FileApiService/UploadFile",
+                headers=headers,
+                params=params,
+                data=data,
+            )
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            if e.response is not None:
+                print_exception(e, e.response.json().get("error", ""))
+            # Delete the file record if the upload fails
+            self.delete_collection_data(collection, file_id)
+            raise
 
         return response
