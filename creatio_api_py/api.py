@@ -423,7 +423,7 @@ class CreatioODataAPI:
         return self._make_request("DELETE", f"0/odata/{collection}({record_id})")
 
     def download_file(
-        self, collection: str, file_id: str, path: str | Path = "."
+        self, collection: str, file_id: str, path: str | Path = Path.cwd()
     ) -> requests.models.Response:
         """
         Download a file from Creatio.
@@ -443,9 +443,8 @@ class CreatioODataAPI:
         response.raise_for_status()
 
         # Get the file name from the response headers
-        file_name: str | None = parse_content_disposition(
-            response.headers.get("Content-Disposition", "")
-        )
+        content_disposition: str = response.headers.get("Content-Disposition", "")
+        file_name: str | None = parse_content_disposition(content_disposition)
         if not file_name:
             raise ValueError(
                 "Could not determine the file name from the response headers"

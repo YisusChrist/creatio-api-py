@@ -20,7 +20,7 @@ def print_exception(e: Exception, custom_msg: str = "") -> None:
     print(f"{custom_text}[red]{e.__class__.__name__}:[/] {str(e)}")
 
 
-def parse_content_disposition(header: str) -> str | None:
+def parse_content_disposition(content_disposition: str) -> str | None:
     """
     Get the filename from a `Content-Disposition` header.
 
@@ -33,5 +33,6 @@ def parse_content_disposition(header: str) -> str | None:
         str | None: The filename from the header.
     """
     msg = Message()
-    msg["content-disposition"] = header
-    return msg.get_filename()
+    msg["content-disposition"] = content_disposition
+    filename: str | None = msg.get_filename()
+    return filename.encode("latin-1").decode("utf-8") if filename else None
