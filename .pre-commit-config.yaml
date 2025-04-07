@@ -112,7 +112,7 @@ repos:
         language_version: "3.12"
         name: isort (python)
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.4.1
+    rev: v4.5.0
     hooks:
       - id: commitizen
       - id: commitizen-branch
