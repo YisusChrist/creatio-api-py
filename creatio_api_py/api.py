@@ -1,6 +1,5 @@
 """API module for the Creatio OData API."""
 
-import mimetypes
 import os
 from collections import defaultdict
 from pathlib import Path
@@ -31,7 +30,7 @@ class CreatioODataAPI:
     cookies_file: Path = Path(".creatio_sessions.bin")
     __api_calls: int = Field(default=0, init=False)
     __session: requests.Session | requests_cache.CachedSession = Field(init=False)
-    __username: str = Field(default="", init=False)
+    __username: str = ""
     __encryption_manager: EncryptedCookieManager = Field(init=False)
 
     def __post_init__(self) -> None:
@@ -52,10 +51,8 @@ class CreatioODataAPI:
         self._load_env()
         # Load the encryption key from an environment variable
         encryption_key: str | None = os.getenv("SESSIONS_ENCRYPTION_KEY")
-        if not encryption_key:
-            raise ValueError("Encryption key is not set in the environment.")
+        self.__encryption_manager = EncryptedCookieManager(encryption_key)
 
-        self.__encryption_manager = EncryptedCookieManager(encryption_key.encode())
 
     @property
     def api_calls(self) -> int:
@@ -185,14 +182,18 @@ class CreatioODataAPI:
             headers = {}
         headers.update(self._build_headers(endpoint, method))
 
-        response: requests.Response = self.__session.request(
-            method, url, headers=headers, **kwargs
-        )
+        try:
+            response: requests.Response = self.__session.request(
+                method, url, headers=headers, **kwargs
+            )
 
-        if self.debug:
-            print_response_summary(response)
+            if self.debug:
+                print_response_summary(response)
 
-        response.raise_for_status()
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            print_exception(e)
+            raise
 
         # If the response contains new cookies, update the session cookies
         if response.cookies and endpoint != "ServiceModel/AuthService.svc/Login":
@@ -207,7 +208,8 @@ class CreatioODataAPI:
 
     def _load_env(self) -> None:
         """Load the environment variables from the .env file."""
-        env_vars_loaded: bool = load_dotenv()
+        env_file: Path = Path(".env").absolute()
+        env_vars_loaded: bool = load_dotenv(env_file)
         if env_vars_loaded:
             logger.info("Environment variables loaded successfully")
         else:
@@ -423,7 +425,7 @@ class CreatioODataAPI:
         return self._make_request("DELETE", f"0/odata/{collection}({record_id})")
 
     def download_file(
-        self, collection: str, file_id: str, path: str | Path = Path.cwd()
+        self, collection: str, file_id: str, path: str | Path = "."
     ) -> requests.models.Response:
         """
         Download a file from Creatio.
@@ -443,8 +445,9 @@ class CreatioODataAPI:
         response.raise_for_status()
 
         # Get the file name from the response headers
-        content_disposition: str = response.headers.get("Content-Disposition", "")
-        file_name: str | None = parse_content_disposition(content_disposition)
+        file_name: str | None = parse_content_disposition(
+            response.headers.get("Content-Disposition", "")
+        )
         if not file_name:
             raise ValueError(
                 "Could not determine the file name from the response headers"
@@ -466,10 +469,6 @@ class CreatioODataAPI:
             collection (str): The collection to upload the file to.
             entity_id (str): The ID of the entity to associate the file with.
             file_path (str | Path): The path to the file to upload.
-
-        Raises:
-            ValueError: If the file ID cannot be determined from the response.
-            RequestException: If the file upload request fails.
 
         Returns:
             requests.models.Response: The response from the file upload request.
@@ -498,11 +497,11 @@ class CreatioODataAPI:
         if not file_id:
             raise ValueError("Could not determine the file ID from the response")
 
-        mime_type: str | None = mimetypes.guess_type(file_path)[0]
-        params: dict[str, str | int | None] = {
+        content_type = "application/pdf"
+        params: dict[str, str | int] = {
             "fileId": file_id,
             "totalFileLength": file_length,
-            "mimeType": mime_type,
+            #"mimeType": content_type,
             "fileName": file_path.name,
             "columnName": "Data",
             "entitySchemaName": collection,
@@ -511,25 +510,18 @@ class CreatioODataAPI:
         }
 
         headers: dict[str, str] = {
-            "Content-Type": "application/octet-stream",
+            "Content-Type": content_type,
             "Content-Disposition": f"attachment; filename={file_path.name}",
-            "Content-Range": f"bytes 0-{file_length - 1}/{file_length}",
         }
 
-        try:
-            response = self._make_request(
-                "POST",
-                f"0/rest/FileApiService/UploadFile",
-                headers=headers,
-                params=params,
-                data=data,
-            )
-            response.raise_for_status()
-        except requests.exceptions.RequestException as e:
-            if e.response is not None:
-                print_exception(e, e.response.json().get("error", ""))
-            # Delete the file record if the upload fails
-            self.delete_collection_data(collection, file_id)
-            raise
+        # TODO: Fix this call, currently returns a InvalidFileSizeException error
+        # Probably related to content-type header and mimeType value
+        response = self._make_request(
+            "POST",
+            f"0/rest/FileApiService/UploadFile",
+            params=params,
+            data=data,
+        )
+        response.raise_for_status()
 
         return response
