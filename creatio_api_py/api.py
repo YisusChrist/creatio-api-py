@@ -1,5 +1,6 @@
 """API module for the Creatio OData API."""
 
+import mimetypes
 import os
 from collections import defaultdict
 from pathlib import Path
@@ -30,7 +31,7 @@ class CreatioODataAPI:
     cookies_file: Path = Path(".creatio_sessions.bin")
     __api_calls: int = Field(default=0, init=False)
     __session: requests.Session | requests_cache.CachedSession = Field(init=False)
-    __username: str = ""
+    __username: str = Field(default="", init=False)
     __encryption_manager: EncryptedCookieManager = Field(init=False)
 
     def __post_init__(self) -> None:
@@ -52,7 +53,6 @@ class CreatioODataAPI:
         # Load the encryption key from an environment variable
         encryption_key: str | None = os.getenv("SESSIONS_ENCRYPTION_KEY")
         self.__encryption_manager = EncryptedCookieManager(encryption_key)
-
 
     @property
     def api_calls(self) -> int:
@@ -76,7 +76,7 @@ class CreatioODataAPI:
             return {}
 
         try:
-            encrypted_data = self.cookies_file.read_bytes()
+            encrypted_data: bytes = self.cookies_file.read_bytes()
             return self.__encryption_manager.decrypt(encrypted_data)
         except Exception as e:
             if self.debug:
@@ -86,7 +86,7 @@ class CreatioODataAPI:
     def _update_cookies_file(self, cookies_data: dict[str, dict[str, Any]]) -> None:
         """Encrypt and save cookies data to the file."""
         try:
-            encrypted_data = self.__encryption_manager.encrypt(cookies_data)
+            encrypted_data: bytes = self.__encryption_manager.encrypt(cookies_data)
             self.cookies_file.write_bytes(encrypted_data)
             if self.debug:
                 logger.debug("Cookies data successfully updated.")
@@ -182,18 +182,14 @@ class CreatioODataAPI:
             headers = {}
         headers.update(self._build_headers(endpoint, method))
 
-        try:
-            response: requests.Response = self.__session.request(
-                method, url, headers=headers, **kwargs
-            )
+        response: requests.Response = self.__session.request(
+            method, url, headers=headers, **kwargs
+        )
 
-            if self.debug:
-                print_response_summary(response)
+        if self.debug:
+            print_response_summary(response)
 
-            response.raise_for_status()
-        except requests.exceptions.RequestException as e:
-            print_exception(e)
-            raise
+        response.raise_for_status()
 
         # If the response contains new cookies, update the session cookies
         if response.cookies and endpoint != "ServiceModel/AuthService.svc/Login":
@@ -208,8 +204,7 @@ class CreatioODataAPI:
 
     def _load_env(self) -> None:
         """Load the environment variables from the .env file."""
-        env_file: Path = Path(".env").absolute()
-        env_vars_loaded: bool = load_dotenv(env_file)
+        env_vars_loaded: bool = load_dotenv()
         if env_vars_loaded:
             logger.info("Environment variables loaded successfully")
         else:
@@ -425,7 +420,7 @@ class CreatioODataAPI:
         return self._make_request("DELETE", f"0/odata/{collection}({record_id})")
 
     def download_file(
-        self, collection: str, file_id: str, path: str | Path = "."
+        self, collection: str, file_id: str, path: str | Path = Path.cwd()
     ) -> requests.models.Response:
         """
         Download a file from Creatio.
@@ -445,9 +440,8 @@ class CreatioODataAPI:
         response.raise_for_status()
 
         # Get the file name from the response headers
-        file_name: str | None = parse_content_disposition(
-            response.headers.get("Content-Disposition", "")
-        )
+        content_disposition: str = response.headers.get("Content-Disposition", "")
+        file_name: str | None = parse_content_disposition(content_disposition)
         if not file_name:
             raise ValueError(
                 "Could not determine the file name from the response headers"
@@ -469,6 +463,10 @@ class CreatioODataAPI:
             collection (str): The collection to upload the file to.
             entity_id (str): The ID of the entity to associate the file with.
             file_path (str | Path): The path to the file to upload.
+
+        Raises:
+            ValueError: If the file ID cannot be determined from the response.
+            RequestException: If the file upload request fails.
 
         Returns:
             requests.models.Response: The response from the file upload request.
@@ -497,11 +495,11 @@ class CreatioODataAPI:
         if not file_id:
             raise ValueError("Could not determine the file ID from the response")
 
-        content_type = "application/pdf"
-        params: dict[str, str | int] = {
+        mime_type: str | None = mimetypes.guess_type(file_path)[0]
+        params: dict[str, str | int | None] = {
             "fileId": file_id,
             "totalFileLength": file_length,
-            #"mimeType": content_type,
+            "mimeType": mime_type,
             "fileName": file_path.name,
             "columnName": "Data",
             "entitySchemaName": collection,
@@ -510,18 +508,25 @@ class CreatioODataAPI:
         }
 
         headers: dict[str, str] = {
-            "Content-Type": content_type,
+            "Content-Type": "application/octet-stream",
             "Content-Disposition": f"attachment; filename={file_path.name}",
+            "Content-Range": f"bytes 0-{file_length - 1}/{file_length}",
         }
 
-        # TODO: Fix this call, currently returns a InvalidFileSizeException error
-        # Probably related to content-type header and mimeType value
-        response = self._make_request(
-            "POST",
-            f"0/rest/FileApiService/UploadFile",
-            params=params,
-            data=data,
-        )
-        response.raise_for_status()
+        try:
+            response = self._make_request(
+                "POST",
+                f"0/rest/FileApiService/UploadFile",
+                headers=headers,
+                params=params,
+                data=data,
+            )
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            if e.response is not None:
+                print_exception(e, e.response.json().get("error", ""))
+            # Delete the file record if the upload fails
+            self.delete_collection_data(collection, file_id)
+            raise
 
         return response
