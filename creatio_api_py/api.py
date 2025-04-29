@@ -204,7 +204,7 @@ class CreatioODataAPI:
 
     def _load_env(self) -> None:
         """Load the environment variables from the .env file."""
-        env_vars_loaded: bool = load_dotenv()
+        env_vars_loaded: bool = load_dotenv(".env")
         if env_vars_loaded:
             logger.info("Environment variables loaded successfully")
         else:
