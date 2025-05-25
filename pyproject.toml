@@ -23,7 +23,7 @@ repository = "https://github.com/yisuschrist/creatio-api-py"
 
 [tool.poetry.group.dev.dependencies]
 bandit = "^1.7.7"
-black = "^24.2.0"
+black = ">=24.2.0,<26.0.0"
 coverage = "^7.4.1"
 mypy = "^1.8.0"
 pre-commit = ">=3.6.1,<5.0.0"
