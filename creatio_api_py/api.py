@@ -134,7 +134,7 @@ class CreatioODataAPI:
         cookies_data: dict[str, dict[str, Any]] = self._read_encrypted_cookies()
 
         # Create a nested dictionary to store cookies for multiple URLs and usernames
-        cookies_data = defaultdict(lambda: defaultdict(dict))
+        cookies_data = defaultdict(lambda: defaultdict(dict), cookies_data)
 
         # Update cookies for the given username
         url = str(self.base_url)
