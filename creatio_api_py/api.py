@@ -14,6 +14,7 @@ from pydantic import Field
 from pydantic import HttpUrl
 from pydantic.dataclasses import dataclass
 from requests_pprint import print_response_summary
+from rich import print  # pylint: disable=redefined-builtin
 
 from creatio_api_py.encryption import EncryptedCookieManager
 from creatio_api_py.logs import logger
@@ -32,6 +33,7 @@ class CreatioODataAPI:
     __api_calls: int = Field(default=0, init=False)
     __session: requests.Session | requests_cache.CachedSession = Field(init=False)
     __username: str = Field(default="", init=False)
+    __password: str = Field(default="", init=False)
     __encryption_manager: EncryptedCookieManager = Field(init=False)
 
     def __post_init__(self) -> None:
@@ -182,9 +184,20 @@ class CreatioODataAPI:
             headers = {}
         headers.update(self._build_headers(endpoint, method))
 
-        response: requests.Response = self.__session.request(
-            method, url, headers=headers, **kwargs
-        )
+        try:
+            response: requests.Response = self.__session.request(
+                method, url, headers=headers, **kwargs
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            if self.debug:
+                logger.error(f"Authentication failed: {e}")
+            logger.info(f"Attempting to re-authenticate for {method} request to {url}.")
+            self.authenticate(
+                username=self.__username, password=self.__password, cache=False
+            )
+            # Retry the request after re-authentication
+            response = self.__session.request(method, url, headers=headers, **kwargs)
 
         if self.debug:
             print_response_summary(response)
@@ -211,7 +224,10 @@ class CreatioODataAPI:
             logger.warning("Environment variables could not be loaded")
 
     def authenticate(
-        self, username: Optional[str] = None, password: Optional[str] = None
+        self,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        cache: bool = True,
     ) -> requests.models.Response:
         """
         Authenticate and get a cookie.
@@ -233,9 +249,9 @@ class CreatioODataAPI:
             logger.error(error_message)
             raise ValueError(error_message)
 
-        self.__username = username
+        self.__username, self.__password = username, password
         # Attempt to load a cached session cookie for this username
-        if self._load_session_cookie(username):
+        if cache and self._load_session_cookie(username):
             if self.debug:
                 logger.debug(f"Using cached session cookie for user {username}.")
             return requests.Response()  # Simulate successful response
