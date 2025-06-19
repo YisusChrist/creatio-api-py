@@ -4,6 +4,8 @@ from email.message import Message
 
 from rich import print  # pylint: disable=redefined-builtin
 
+from creatio_api_py.logs import logger
+
 
 def print_exception(e: Exception, custom_msg: str = "") -> None:
     """
@@ -36,3 +38,17 @@ def parse_content_disposition(content_disposition: str) -> str | None:
     msg["content-disposition"] = content_disposition
     filename: str | None = msg.get_filename()
     return filename.encode("latin-1").decode("utf-8") if filename else None
+
+
+def log_and_print(message: str, exception: Exception, debug: bool = False) -> None:
+    """
+    Log and print a message.
+
+    Args:
+        message (str): The message to log and print.
+        level (str): The logging level (e.g., 'info', 'debug', 'error').
+        debug (bool): Whether to print the message in debug mode.
+    """
+    logger.error(f"{message}: {exception}")
+    if debug:
+        print_exception(exception, message)

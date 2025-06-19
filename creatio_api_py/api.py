@@ -18,8 +18,8 @@ from rich import print  # pylint: disable=redefined-builtin
 
 from creatio_api_py.encryption import EncryptedCookieManager
 from creatio_api_py.logs import logger
+from creatio_api_py.utils import log_and_print
 from creatio_api_py.utils import parse_content_disposition
-from creatio_api_py.utils import print_exception
 
 
 @dataclass(config={"arbitrary_types_allowed": True})
@@ -48,8 +48,12 @@ class CreatioODataAPI:
         else:
             self.__session = requests.Session()
 
+        message: str = (
+            f"Session initialized with cache={self.cache} and base_url={self.base_url}."
+        )
+        logger.debug(message)
         if self.debug:
-            logger.debug(f"Session initialized with cache={self.cache}.")
+            print(f"[bold green]{message}[/]")
 
         self._load_env()
         # Load the encryption key from an environment variable
@@ -74,27 +78,28 @@ class CreatioODataAPI:
             dict: The decrypted cookies data, or an empty dictionary if the file
                 does not exist or decryption fails.
         """
+        logger.debug("Reading and decrypting cookies file.")
         if not self.cookies_file.exists():
             return {}
 
         try:
             encrypted_data: bytes = self.cookies_file.read_bytes()
+            logger.debug("Cookies file read successfully.")
             return self.__encryption_manager.decrypt(encrypted_data)
         except Exception as e:
-            if self.debug:
-                logger.warning(f"Failed to read or decrypt cookies file: {e}")
+            log_and_print("Failed to read or decrypt cookies file", e, self.debug)
             return {}
 
     def _update_cookies_file(self, cookies_data: dict[str, dict[str, Any]]) -> None:
         """Encrypt and save cookies data to the file."""
+        logger.debug("Updating cookies file with new data.")
+
         try:
             encrypted_data: bytes = self.__encryption_manager.encrypt(cookies_data)
             self.cookies_file.write_bytes(encrypted_data)
-            if self.debug:
-                logger.debug("Cookies data successfully updated.")
+            logger.debug("Cookies data successfully updated.")
         except Exception as e:
-            if self.debug:
-                logger.error(f"Failed to update cookies file: {e}")
+            log_and_print("Failed to update cookies file", e, self.debug)
 
     def _load_session_cookie(self, username: str) -> bool:
         """
@@ -113,8 +118,7 @@ class CreatioODataAPI:
 
         # Load the cookies into the session
         self.__session.cookies.update(cookies_data[url][username])
-        if self.debug:
-            logger.debug(f"Session cookie loaded for URL {url} and user {username}.")
+        logger.debug(f"Session cookie loaded for URL {url} and user {username}.")
 
         # TODO: Find a more reliable and efficient way to check if the session
         # cookie is still valid
@@ -190,8 +194,7 @@ class CreatioODataAPI:
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            if self.debug:
-                logger.error(f"Authentication failed: {e}")
+            log_and_print("Authentication failed", e, self.debug)
             logger.info(f"Attempting to re-authenticate for {method} request to {url}.")
             self.authenticate(
                 username=self.__username, password=self.__password, cache=False
@@ -208,8 +211,7 @@ class CreatioODataAPI:
         if response.cookies and endpoint != "ServiceModel/AuthService.svc/Login":
             self.__session.cookies.update(response.cookies)
             self._store_session_cookie(self.__username)
-            if self.debug:
-                logger.debug("New cookies stored in the session.")
+            logger.debug("New cookies stored in the session.")
 
         self.__api_calls += 1
 
@@ -245,15 +247,17 @@ class CreatioODataAPI:
         username = username or os.getenv("CREATIO_USERNAME", "")
         password = password or os.getenv("CREATIO_PASSWORD", "")
         if not username or not password:
-            error_message = "Username or password empty"
+            error_message: str = "Username or password empty"
             logger.error(error_message)
             raise ValueError(error_message)
 
         self.__username, self.__password = username, password
         # Attempt to load a cached session cookie for this username
         if cache and self._load_session_cookie(username):
+            message: str = f"Using cached session cookie for user {username}."
+            logger.debug(message)
             if self.debug:
-                logger.debug(f"Using cached session cookie for user {username}.")
+                print(message)
             return requests.Response()  # Simulate successful response
 
         logger.info("No valid session cookie found")
@@ -537,7 +541,8 @@ class CreatioODataAPI:
             )
         except requests.exceptions.RequestException as e:
             if e.response is not None:
-                print_exception(e, e.response.json().get("error", ""))
+                message: str = e.response.json().get("error", "")
+                log_and_print(message, e, self.debug)
             # Delete the file record if the upload fails
             self.delete_collection_data(collection, file_id)
             raise
