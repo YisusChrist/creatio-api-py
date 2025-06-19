@@ -453,7 +453,6 @@ class CreatioODataAPI:
         response: requests.Response = self._make_request(
             "GET", f"0/rest/FileService/Download/{collection}/{file_id}"
         )
-        response.raise_for_status()
 
         # Get the file name from the response headers
         content_disposition: str = response.headers.get("Content-Disposition", "")
@@ -504,7 +503,6 @@ class CreatioODataAPI:
             "TypeId": "529bc2f8-0ee0-df11-971b-001d60e938c6",
         }
         response: requests.Response = self.add_collection_data(collection, data=payload)
-        response.raise_for_status()
 
         # Get the file ID from the response
         file_id: str = response.json().get("Id")
@@ -537,7 +535,6 @@ class CreatioODataAPI:
                 params=params,
                 data=data,
             )
-            response.raise_for_status()
         except requests.exceptions.RequestException as e:
             if e.response is not None:
                 print_exception(e, e.response.json().get("error", ""))
