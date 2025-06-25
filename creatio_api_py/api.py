@@ -31,11 +31,13 @@ class CreatioODataAPI:
     debug: bool = False
     cache: bool = False
     cookies_file: Path = Path(".creatio_sessions.bin")
+    oauth_file: Path = Path("oauth.json")
     __api_calls: int = Field(default=0, init=False)
     __session: requests.Session | requests_cache.CachedSession = Field(init=False)
     __username: str = Field(default="", init=False)
     __password: str = Field(default="", init=False)
     __encryption_manager: EncryptedCookieManager = Field(init=False)
+    __oauth_token: Optional[str] = Field(default=None, init=False)
 
     def __post_init__(self) -> None:
         """Initialize the session based on the cache setting."""
@@ -154,24 +156,19 @@ class CreatioODataAPI:
         """Construct request headers."""
         headers: dict[str, str] = {}
 
-        oauth_file = Path("oauth.json")
-        if oauth_file.exists():
-            with open("oauth.json", "r") as f:
-                oauth_data = json.load(f)
-
-            headers["Authorization"] = f"Bearer {oauth_data['access_token']}"
-            return headers
+        if self.__oauth_token:
+            headers["Authorization"] = f"Bearer {self.__oauth_token}"
+        else:
+            bmpcsrf: str | None = self.__session.cookies.get_dict().get("BPMCSRF")
+            if bmpcsrf:
+                # Add the BPMCSRF cookie to the headers
+                headers["BPMCSRF"] = bmpcsrf
 
         headers["ForceUseSession"] = "true"
         if "$metadata" not in endpoint:
             headers["Accept"] = "application/json; odata=verbose"
         if method == "PUT":
             headers["Content-Type"] = "application/octet-stream"
-
-        bmpcsrf: str | None = self.__session.cookies.get_dict().get("BPMCSRF")
-        if bmpcsrf:
-            # Add the BPMCSRF cookie to the headers
-            headers["BPMCSRF"] = bmpcsrf
 
         return headers
 
@@ -210,6 +207,7 @@ class CreatioODataAPI:
                 username=self.__username, password=self.__password, cache=False
             )
             # Retry the request after re-authentication
+            headers.update(self._build_headers(endpoint, method))
             response = self.__session.request(method, url, headers=headers, **kwargs)
 
         if self.debug:
@@ -276,6 +274,13 @@ class CreatioODataAPI:
 
         if client_id and client_secret:
             # Use OAuth authentication
+            if cache and self.oauth_file.exists():
+                with open(self.oauth_file, "r") as f:
+                    oauth_data: dict[str, str] = json.load(f)
+
+                self.__oauth_token = oauth_data.get("access_token")
+                return requests.Response()  # Simulate successful response
+
             data: dict[str, str] = {
                 "grant_type": "client_credentials",
                 "client_id": client_id,
@@ -297,7 +302,9 @@ class CreatioODataAPI:
             response.raise_for_status()
             print_response_summary(response)
 
-            with open("oauth.json", "w") as f:
+            self.__oauth_token = response.json().get("access_token")
+
+            with open(self.oauth_file, "w") as f:
                 json.dump(response.json(), f, indent=4)
 
             return response
