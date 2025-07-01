@@ -35,7 +35,7 @@ class FileOperationsMixin:
         Returns:
             Response: The response from the file download request.
         """
-        response: Response = make_request(  # type: ignore[no-untyped-call]
+        response: Response = make_request(
             self, "GET", f"0/rest/FileService/Download/{collection}/{file_id}"
         )
 
@@ -116,7 +116,7 @@ class FileOperationsMixin:
         }
 
         try:
-            response = make_request(  # type: ignore[no-untyped-call]
+            response = make_request(
                 self,
                 "POST",
                 f"0/rest/FileApiService/UploadFile",

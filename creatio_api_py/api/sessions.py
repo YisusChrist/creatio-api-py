@@ -62,7 +62,7 @@ def load_session_cookie(api_instance: CreatioAPIInterface, username: str) -> boo
         return False
 
     # Load the cookies into the session
-    api_instance.session.cookies.update(cookies_data[url][username])  # type: ignore
+    api_instance.session.cookies.update(cookies_data[url][username])
     logger.debug(f"Session cookie loaded for URL {url} and user {username}.")
 
     # TODO: Find a more reliable and efficient way to check if the session
