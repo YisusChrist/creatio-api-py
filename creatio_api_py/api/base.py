@@ -13,20 +13,17 @@ from pydantic import HttpUrl
 from pydantic.dataclasses import dataclass
 from rich import print  # pylint: disable=redefined-builtin
 
-from creatio_api_py.api.auth import authenticate
-from creatio_api_py.api.operations.collections import add_to_collection
-from creatio_api_py.api.operations.collections import delete_from_collection
-from creatio_api_py.api.operations.collections import get_collection_data
-from creatio_api_py.api.operations.collections import modify_collection
-from creatio_api_py.api.operations.files import download_file
-from creatio_api_py.api.operations.files import upload_file
-from creatio_api_py.api.request_handler import make_request
+from creatio_api_py.api.auth import AuthenticationMixin
+from creatio_api_py.api.operations.collections import CollectionOperationsMixin
+from creatio_api_py.api.operations.files import FileOperationsMixin
 from creatio_api_py.encryption import EncryptedCookieManager
 from creatio_api_py.logs import logger
 
 
 @dataclass(config={"arbitrary_types_allowed": True})
-class CreatioODataAPI:
+class CreatioODataAPI(
+    AuthenticationMixin, CollectionOperationsMixin, FileOperationsMixin
+):
     """A class to interact with the Creatio OData API."""
 
     base_url: HttpUrl
@@ -135,61 +132,3 @@ class CreatioODataAPI:
             logger.info("Environment variables loaded successfully")
         else:
             logger.warning("Environment variables could not be loaded")
-
-    def make_request(
-        self,
-        method: str,
-        endpoint: str,
-        headers: Optional[dict[str, str]] = None,
-        **kwargs: Any,
-    ) -> requests.models.Response:
-        return make_request(self, method, endpoint, headers=headers, **kwargs)
-
-    def authenticate(
-        self,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
-        client_id: Optional[str] = None,
-        client_secret: Optional[str] = None,
-        identity_service_url: Optional[str] = None,
-        cache: bool = True,
-    ) -> requests.models.Response:
-        return authenticate(
-            self,
-            username=username,
-            password=password,
-            client_id=client_id,
-            client_secret=client_secret,
-            identity_service_url=identity_service_url,
-            cache=cache,
-        )
-
-    def get_collection_data(
-        self, collection: str, **kwargs: Any
-    ) -> requests.models.Response:
-        return get_collection_data(self, collection, **kwargs)
-
-    def add_collection_data(
-        self, collection: str, data: dict[str, Any]
-    ) -> requests.models.Response:
-        return add_to_collection(self, collection, data)
-
-    def modify_collection_data(
-        self, collection: str, record_id: str, data: dict[str, Any]
-    ) -> requests.models.Response:
-        return modify_collection(self, collection, record_id, data)
-
-    def delete_collection_data(
-        self, collection: str, record_id: str
-    ) -> requests.models.Response:
-        return delete_from_collection(self, collection, record_id)
-
-    def download_file(
-        self, collection: str, file_id: str, path: str | Path = Path.cwd()
-    ) -> requests.models.Response:
-        return download_file(self, collection, file_id, path)
-
-    def upload_file(
-        self, collection: str, entity_id: str, file_path: str | Path
-    ) -> requests.models.Response:
-        return upload_file(self, collection, entity_id, file_path)
