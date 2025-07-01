@@ -59,7 +59,7 @@ def make_request(
     headers.update(_build_headers(api_instance, endpoint, method))
 
     try:
-        response: Response = api_instance.session.request(  # type: ignore
+        response: Response = api_instance.session.request(
             method, url, headers=headers, **kwargs
         )
         response.raise_for_status()
@@ -71,7 +71,7 @@ def make_request(
         )
         # Retry the request after re-authentication
         headers.update(_build_headers(api_instance, endpoint, method))
-        response = api_instance.session.request(method, url, headers=headers, **kwargs)  # type: ignore
+        response = api_instance.session.request(method, url, headers=headers, **kwargs)
 
     if api_instance.debug:
         print_response_summary(response)

@@ -56,7 +56,7 @@ def _oauth_authentication(
         + "/connect/token"
     )
 
-    response: Response = api_instance.session.post(identity_service_url, data=data)  # type: ignore
+    response: Response = api_instance.session.post(identity_service_url, data=data)
     response.raise_for_status()
     print_response_summary(response)
 
