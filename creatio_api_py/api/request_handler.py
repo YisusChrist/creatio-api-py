@@ -1,4 +1,3 @@
-from typing import TYPE_CHECKING
 from typing import Any
 from typing import Optional
 
@@ -7,16 +6,13 @@ from requests.models import Response
 from requests_pprint import print_response_summary
 
 from creatio_api_py.api.sessions import store_session_cookie
+from creatio_api_py.interfaces import CreatioAPIInterface
 from creatio_api_py.logs import logger
 from creatio_api_py.utils import log_and_print
 
 
-if TYPE_CHECKING:
-    from creatio_api_py.api.base import CreatioODataAPI
-
-
 def _build_headers(
-    api_instance: "CreatioODataAPI", endpoint: str, method: str
+    api_instance: CreatioAPIInterface, endpoint: str, method: str
 ) -> dict[str, str]:
     """Construct request headers."""
     headers: dict[str, str] = {}
@@ -40,7 +36,7 @@ def _build_headers(
 
 
 def make_request(
-    api_instance: "CreatioODataAPI",
+    api_instance: CreatioAPIInterface,
     method: str,
     endpoint: str,
     headers: Optional[dict[str, str]] = None,

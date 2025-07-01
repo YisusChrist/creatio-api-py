@@ -1,86 +1,21 @@
 import json
 import os
-from typing import TYPE_CHECKING
 from typing import Any
 from typing import Optional
 
 from requests.models import Response
 from requests_pprint import print_response_summary
 
+from creatio_api_py.api.request_handler import make_request
 from creatio_api_py.api.sessions import load_session_cookie
 from creatio_api_py.api.sessions import store_session_cookie
+from creatio_api_py.interfaces import CreatioAPIInterface
 from creatio_api_py.logs import logger
 from creatio_api_py.utils import log_and_print
 
 
-if TYPE_CHECKING:
-    from creatio_api_py.api.base import CreatioODataAPI
-
-
-def authenticate(
-    api_instance: "CreatioODataAPI",
-    username: Optional[str] = None,
-    password: Optional[str] = None,
-    client_id: Optional[str] = None,
-    client_secret: Optional[str] = None,
-    identity_service_url: Optional[str] = None,
-    cache: bool = True,
-) -> Response:
-    """
-    Authenticate and get a cookie.
-
-    Args:
-        api_instance (CreatioODataAPI): The API instance to use for authentication.
-        username (Optional[str], optional): The username to authenticate with.
-        password (Optional[str], optional): The password to authenticate with.
-        client_id (Optional[str], optional): The client ID for OAuth authentication.
-        client_secret (Optional[str], optional): The client secret for OAuth authentication.
-        identity_service_url (Optional[str], optional): The URL of the identity service for OAuth authentication.
-        cache (bool, optional): Whether to use cached session cookies. Defaults to True.
-
-    Raises:
-        ValueError: If the username or password is empty or if the authentication fails.
-
-    Returns:
-        Response: The response from the authentication request.
-    """
-    username = username or os.getenv("CREATIO_USERNAME", "")
-    password = password or os.getenv("CREATIO_PASSWORD", "")
-    client_id = client_id or os.getenv("CREATIO_CLIENT_ID", "")
-    client_secret = client_secret or os.getenv("CREATIO_CLIENT_SECRET", "")
-
-    if all([client_id, client_secret, username, password]):
-        error_message: str = (
-            "Cannot use both oauth credentials and username/password for authentication."
-        )
-        log_and_print(error_message, ValueError(error_message), api_instance.debug)
-        raise ValueError(error_message)
-
-    if not any([username, password, client_id, client_secret]):
-        error_message = "No credentials provided for authentication"
-        log_and_print(error_message, ValueError(error_message), api_instance.debug)
-        raise ValueError(error_message)
-
-    if client_id and client_secret:
-        # Use OAuth authentication
-        return _oauth_authentication(
-            api_instance,
-            client_id,
-            client_secret,
-            cache,
-            identity_service_url=identity_service_url,
-        )
-    elif username and password:
-        # Use session-based authentication
-        return _session_authentication(api_instance, username, password, cache)
-
-    error_message = "Invalid authentication method. Provide either username/password or client_id/client_secret."
-    logger.error(error_message)
-    raise ValueError(error_message)
-
-
 def _oauth_authentication(
-    api_instance: "CreatioODataAPI",
+    api_instance: CreatioAPIInterface,
     client_id: str,
     client_secret: str,
     cache: bool,
@@ -134,7 +69,7 @@ def _oauth_authentication(
 
 
 def _session_authentication(
-    api_instance: "CreatioODataAPI",
+    api_instance: CreatioAPIInterface,
     username: str,
     password: str,
     cache: bool,
@@ -143,7 +78,7 @@ def _session_authentication(
     Authenticate using session-based credentials.
 
     Args:
-        api_instance (CreatioODataAPI): The API instance to use for authentication.
+        self (CreatioODataAPI): The API instance to use for authentication.
         username (str): The username for authentication.
         password (str): The password for authentication.
         cache (bool): Whether to use cached session cookies.
@@ -165,8 +100,8 @@ def _session_authentication(
     api_instance.session.cookies.clear()
     data: dict[str, str] = {"UserName": username, "UserPassword": password}
 
-    response: Response = api_instance.make_request(
-        "POST", "ServiceModel/AuthService.svc/Login", json=data
+    response: Response = make_request(
+        api_instance, "POST", "ServiceModel/AuthService.svc/Login", json=data
     )
     response_json: dict[str, Any] = response.json()
     if response_json.get("Exception"):
@@ -179,3 +114,71 @@ def _session_authentication(
     store_session_cookie(api_instance, username)
 
     return response
+
+
+class AuthenticationMixin:
+    """
+    Mixin class for authentication methods in Creatio API.
+    Provides methods to authenticate using session-based or OAuth credentials.
+    """
+
+    def authenticate(
+        self: CreatioAPIInterface,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        client_id: Optional[str] = None,
+        client_secret: Optional[str] = None,
+        identity_service_url: Optional[str] = None,
+        cache: bool = True,
+    ) -> Response:
+        """
+        Authenticate and get a cookie.
+
+        Args:
+            self (CreatioODataAPI): The API instance to use for authentication.
+            username (Optional[str], optional): The username to authenticate with.
+            password (Optional[str], optional): The password to authenticate with.
+            client_id (Optional[str], optional): The client ID for OAuth authentication.
+            client_secret (Optional[str], optional): The client secret for OAuth authentication.
+            identity_service_url (Optional[str], optional): The URL of the identity service for OAuth authentication.
+            cache (bool, optional): Whether to use cached session cookies. Defaults to True.
+
+        Raises:
+            ValueError: If the username or password is empty or if the authentication fails.
+
+        Returns:
+            Response: The response from the authentication request.
+        """
+        username = username or os.getenv("CREATIO_USERNAME", "")
+        password = password or os.getenv("CREATIO_PASSWORD", "")
+        client_id = client_id or os.getenv("CREATIO_CLIENT_ID", "")
+        client_secret = client_secret or os.getenv("CREATIO_CLIENT_SECRET", "")
+
+        if all([client_id, client_secret, username, password]):
+            error_message: str = (
+                "Cannot use both oauth credentials and username/password for authentication."
+            )
+            log_and_print(error_message, ValueError(error_message), self.debug)
+            raise ValueError(error_message)
+
+        if not any([username, password, client_id, client_secret]):
+            error_message = "No credentials provided for authentication"
+            log_and_print(error_message, ValueError(error_message), self.debug)
+            raise ValueError(error_message)
+
+        if client_id and client_secret:
+            # Use OAuth authentication
+            return _oauth_authentication(
+                self,
+                client_id,
+                client_secret,
+                cache,
+                identity_service_url=identity_service_url,
+            )
+        elif username and password:
+            # Use session-based authentication
+            return _session_authentication(self, username, password, cache)
+
+        error_message = "Invalid authentication method. Provide either username/password or client_id/client_secret."
+        logger.error(error_message)
+        raise ValueError(error_message)
