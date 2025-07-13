@@ -149,7 +149,7 @@ class CollectionOperationsMixin:
             requests.models.Response: The response from the case list request.
         """
         return make_request(
-            self, "PATCH", f"0/odata/{collection}({record_id})", data=data
+            self, "PATCH", f"0/odata/{collection}({record_id})", json=data
         )
 
     def delete_collection_data(  # pylint: disable=line-too-long
