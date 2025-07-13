@@ -1,5 +1,6 @@
 """API module for the Creatio OData API."""
 
+import json
 import mimetypes
 import os
 from collections import defaultdict
@@ -30,11 +31,13 @@ class CreatioODataAPI:
     debug: bool = False
     cache: bool = False
     cookies_file: Path = Path(".creatio_sessions.bin")
+    oauth_file: Path = Path("oauth.json")
     __api_calls: int = Field(default=0, init=False)
     __session: requests.Session | requests_cache.CachedSession = Field(init=False)
     __username: str = Field(default="", init=False)
     __password: str = Field(default="", init=False)
     __encryption_manager: EncryptedCookieManager = Field(init=False)
+    __oauth_token: Optional[str] = Field(default=None, init=False)
 
     def __post_init__(self) -> None:
         """Initialize the session based on the cache setting."""
@@ -151,17 +154,21 @@ class CreatioODataAPI:
 
     def _build_headers(self, endpoint: str, method: str) -> dict[str, str]:
         """Construct request headers."""
-        headers: dict[str, str] = {"ForceUseSession": "true"}
+        headers: dict[str, str] = {}
 
+        if self.__oauth_token:
+            headers["Authorization"] = f"Bearer {self.__oauth_token}"
+        else:
+            bmpcsrf: str | None = self.__session.cookies.get_dict().get("BPMCSRF")
+            if bmpcsrf:
+                # Add the BPMCSRF cookie to the headers
+                headers["BPMCSRF"] = bmpcsrf
+
+        headers["ForceUseSession"] = "true"
         if "$metadata" not in endpoint:
             headers["Accept"] = "application/json; odata=verbose"
         if method == "PUT":
             headers["Content-Type"] = "application/octet-stream"
-
-        bmpcsrf: str | None = self.__session.cookies.get_dict().get("BPMCSRF")
-        if bmpcsrf:
-            # Add the BPMCSRF cookie to the headers
-            headers["BPMCSRF"] = bmpcsrf
 
         return headers
 
@@ -200,6 +207,7 @@ class CreatioODataAPI:
                 username=self.__username, password=self.__password, cache=False
             )
             # Retry the request after re-authentication
+            headers.update(self._build_headers(endpoint, method))
             response = self.__session.request(method, url, headers=headers, **kwargs)
 
         if self.debug:
@@ -229,6 +237,9 @@ class CreatioODataAPI:
         self,
         username: Optional[str] = None,
         password: Optional[str] = None,
+        client_id: Optional[str] = None,
+        client_secret: Optional[str] = None,
+        identity_service_url: Optional[str] = None,
         cache: bool = True,
     ) -> requests.models.Response:
         """
@@ -246,39 +257,94 @@ class CreatioODataAPI:
         """
         username = username or os.getenv("CREATIO_USERNAME", "")
         password = password or os.getenv("CREATIO_PASSWORD", "")
-        if not username or not password:
-            error_message: str = "Username or password empty"
-            logger.error(error_message)
+        client_id = client_id or os.getenv("CREATIO_CLIENT_ID", "")
+        client_secret = client_secret or os.getenv("CREATIO_CLIENT_SECRET", "")
+
+        if all([client_id, client_secret, username, password]):
+            error_message: str = (
+                "Cannot use both oauth credentials and username/password for authentication."
+            )
+            log_and_print(error_message, ValueError(error_message), self.debug)
             raise ValueError(error_message)
 
-        self.__username, self.__password = username, password
-        # Attempt to load a cached session cookie for this username
-        if cache and self._load_session_cookie(username):
-            message: str = f"Using cached session cookie for user {username}."
-            logger.debug(message)
-            if self.debug:
-                print(message)
-            return requests.Response()  # Simulate successful response
-
-        logger.info("No valid session cookie found")
-        # Clear the session cookies
-        self.__session.cookies.clear()
-        data: dict[str, str] = {"UserName": username, "UserPassword": password}
-
-        response: requests.Response = self._make_request(
-            "POST", "ServiceModel/AuthService.svc/Login", json=data
-        )
-        response_json: dict[str, Any] = response.json()
-        if response_json.get("Exception"):
-            error_message = response_json["Exception"]["Message"]
-            logger.error(error_message)
+        if not any([username, password, client_id, client_secret]):
+            error_message = "No credentials provided for authentication"
+            log_and_print(error_message, ValueError(error_message), self.debug)
             raise ValueError(error_message)
 
-        # Extract the cookie from the response
-        self.__session.cookies.update(response.cookies)
-        self._store_session_cookie(username)
+        if client_id and client_secret:
+            # Use OAuth authentication
+            if cache and self.oauth_file.exists():
+                with open(self.oauth_file, "r") as f:
+                    oauth_data: dict[str, str] = json.load(f)
 
-        return response
+                self.__oauth_token = oauth_data.get("access_token")
+                return requests.Response()  # Simulate successful response
+
+            data: dict[str, str] = {
+                "grant_type": "client_credentials",
+                "client_id": client_id,
+                "client_secret": client_secret,
+            }
+
+            # By default, the identity service URL is constructed from the base URL
+            # by adding the suffix "-is" to the subdomain.
+            identity_service_url = identity_service_url or (
+                str(self.base_url)
+                .rstrip("/")
+                .replace(".creatio.com", "-is.creatio.com")
+                + "/connect/token"
+            )
+
+            response: requests.Response = self.__session.post(
+                identity_service_url, data=data
+            )
+            response.raise_for_status()
+            print_response_summary(response)
+
+            self.__oauth_token = response.json().get("access_token")
+
+            with open(self.oauth_file, "w") as f:
+                json.dump(response.json(), f, indent=4)
+
+            return response
+
+        elif username and password:
+            # Use session-based authentication
+            self.__username, self.__password = username, password
+            # Attempt to load a cached session cookie for this username
+            if cache and self._load_session_cookie(username):
+                message: str = f"Using cached session cookie for user {username}."
+                logger.debug(message)
+                if self.debug:
+                    print(message)
+                return requests.Response()  # Simulate successful response
+
+            logger.info("No valid session cookie found")
+            # Clear the session cookies
+            self.__session.cookies.clear()
+            data = {"UserName": username, "UserPassword": password}
+
+            response: requests.Response = self._make_request(
+                "POST", "ServiceModel/AuthService.svc/Login", json=data
+            )
+            response_json: dict[str, Any] = response.json()
+            if response_json.get("Exception"):
+                error_message = response_json["Exception"]["Message"]
+                logger.error(error_message)
+                raise ValueError(error_message)
+
+            # Extract the cookie from the response
+            self.__session.cookies.update(response.cookies)
+            self._store_session_cookie(username)
+
+            return response
+        else:
+            error_message: str = (
+                "Invalid authentication method. Provide either username/password or client_id/client_secret."
+            )
+            logger.error(error_message)
+            raise ValueError(error_message)
 
     def get_collection_data(  # pylint: disable=line-too-long
         self,
