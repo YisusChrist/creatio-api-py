@@ -104,7 +104,7 @@ class CollectionOperationsMixin:
 
         return make_request(self, "GET", url, params=params)
 
-    def add_to_collection(  # pylint: disable=line-too-long
+    def add_collection_data(  # pylint: disable=line-too-long
         self: CreatioAPIInterface, collection: str, data: dict[str, Any]
     ) -> Response:
         """
@@ -125,7 +125,7 @@ class CollectionOperationsMixin:
         """
         return make_request(self, "POST", f"0/odata/{collection}", json=data)
 
-    def modify_collection(  # pylint: disable=line-too-long
+    def modify_collection_data(  # pylint: disable=line-too-long
         self: CreatioAPIInterface,
         collection: str,
         record_id: str,
@@ -152,7 +152,7 @@ class CollectionOperationsMixin:
             self, "PATCH", f"0/odata/{collection}({record_id})", data=data
         )
 
-    def delete_from_collection(  # pylint: disable=line-too-long
+    def delete_collection_data(  # pylint: disable=line-too-long
         self: CreatioAPIInterface, collection: str, record_id: str
     ) -> Response:
         """
