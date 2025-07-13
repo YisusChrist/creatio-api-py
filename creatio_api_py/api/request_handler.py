@@ -20,7 +20,7 @@ def _build_headers(
     if api_instance.oauth_token:
         headers["Authorization"] = f"Bearer {api_instance.oauth_token}"
     else:
-        bmpcsrf: str | None = api_instance.session.cookies.get_dict().get("BPMCSRF")
+        bmpcsrf: str | None = api_instance.session_cookies.get("BPMCSRF")
         if bmpcsrf:
             # Add the BPMCSRF cookie to the headers
             headers["BPMCSRF"] = bmpcsrf
