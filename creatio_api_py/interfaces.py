@@ -4,9 +4,10 @@ from typing import Any
 from typing import Optional
 from typing import Protocol
 
+import requests
+import requests_cache
 from pydantic import HttpUrl
 from requests import Response
-from requests import Session
 
 from creatio_api_py.encryption import EncryptedCookieManager
 
@@ -15,17 +16,40 @@ class CreatioAPIInterface(Protocol):
     # --- Attributes ---
     base_url: HttpUrl
     debug: bool
-    username: str
-    password: str
-
+    cache: bool
     cookies_file: Path
     oauth_file: Path
 
-    session: Session
-    session_cookies: dict[str, Any]
-    oauth_token: Optional[str]
-    encryption_manager: EncryptedCookieManager
-    api_calls: int
+    # --- Properties ---
+
+    @property
+    def api_calls(self) -> int: ...
+    @api_calls.setter
+    def api_calls(self, value: int) -> None: ...
+
+    @property
+    def session_cookies(self) -> dict[str, Any]: ...
+
+    @property
+    def session(self) -> requests.Session | requests_cache.CachedSession: ...
+
+    @property
+    def username(self) -> str: ...
+    @username.setter
+    def username(self, value: str) -> None: ...
+
+    @property
+    def password(self) -> str: ...
+    @password.setter
+    def password(self, value: str) -> None: ...
+
+    @property
+    def encryption_manager(self) -> EncryptedCookieManager: ...
+
+    @property
+    def oauth_token(self) -> Optional[str]: ...
+    @oauth_token.setter
+    def oauth_token(self, value: Optional[str]) -> None: ...
 
     # --- Methods from CollectionOperationsMixin ---
     def get_collection_data(  # pylint: disable=line-too-long
