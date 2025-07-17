@@ -22,6 +22,8 @@ def _oauth_authentication(
     identity_service_url: Optional[str] = None,
 ) -> Response:
     """
+    Reference: https://documenter.getpostman.com/view/10204500/SztHX5Qb?version=latest#11dde5c2-4a77-4248-b8a6-c75035faa5cc
+    
     Authenticate using OAuth credentials.
 
     Args:
@@ -76,6 +78,8 @@ def _session_authentication(
     cache: bool,
 ) -> Response:
     """
+    Reference: https://documenter.getpostman.com/view/10204500/SztHX5Qb?version=latest#46f97170-d66d-4ed9-8941-08590bcdf444
+    
     Authenticate using session-based credentials.
 
     Args:
