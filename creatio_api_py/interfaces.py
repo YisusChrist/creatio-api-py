@@ -19,47 +19,20 @@ class CreatioAPIInterface(Protocol):
     cache: bool
     cookies_file: Path
     oauth_file: Path
+    username: str
+    password: str
+    client_id: str
+    client_secret: str
+    oauth_token: Optional[str]
+    api_calls: int
 
     # --- Properties ---
-
-    @property
-    def api_calls(self) -> int: ...
-    @api_calls.setter
-    def api_calls(self, value: int) -> None: ...
-
     @property
     def session_cookies(self) -> dict[str, Any]: ...
-
     @property
     def session(self) -> requests.Session | requests_cache.CachedSession: ...
-
-    @property
-    def username(self) -> str: ...
-    @username.setter
-    def username(self, value: str) -> None: ...
-
-    @property
-    def password(self) -> str: ...
-    @password.setter
-    def password(self, value: str) -> None: ...
-
     @property
     def encryption_manager(self) -> EncryptedCookieManager: ...
-
-    @property
-    def oauth_token(self) -> Optional[str]: ...
-    @oauth_token.setter
-    def oauth_token(self, value: Optional[str]) -> None: ...
-
-    @property
-    def client_id(self) -> Optional[str]: ...
-    @client_id.setter
-    def client_id(self, value: Optional[str]) -> None: ...
-
-    @property
-    def client_secret(self) -> Optional[str]: ...
-    @client_secret.setter
-    def client_secret(self, value: Optional[str]) -> None: ...
 
     # --- Methods from CollectionOperationsMixin ---
     def get_collection_data(  # pylint: disable=line-too-long
