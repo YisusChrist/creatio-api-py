@@ -4,7 +4,6 @@ from typing import Any
 from typing import Optional
 
 from requests.models import Response
-from requests_pprint import print_response_summary
 
 from creatio_api_py.api.request_handler import make_request
 from creatio_api_py.api.sessions import load_session_cookie
@@ -44,6 +43,7 @@ def _oauth_authentication(
         api_instance.oauth_token = oauth_data.get("access_token")
         return Response()  # Simulate successful response
 
+    logger.info("No valid OAuth token found")
     data: dict[str, str] = {
         "grant_type": "client_credentials",
         "client_id": client_id,
@@ -61,7 +61,6 @@ def _oauth_authentication(
 
     response: Response = api_instance.session.post(identity_service_url, data=data)
     response.raise_for_status()
-    print_response_summary(response)
 
     api_instance.oauth_token = response.json().get("access_token")
 
