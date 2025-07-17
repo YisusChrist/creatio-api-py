@@ -1,7 +1,6 @@
 """Utility functions for the Creatio OData API."""
 
 from email.message import Message
-from typing import Optional
 
 from rich import print  # pylint: disable=redefined-builtin
 
