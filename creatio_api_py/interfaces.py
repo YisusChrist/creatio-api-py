@@ -51,6 +51,16 @@ class CreatioAPIInterface(Protocol):
     @oauth_token.setter
     def oauth_token(self, value: Optional[str]) -> None: ...
 
+    @property
+    def client_id(self) -> Optional[str]: ...
+    @client_id.setter
+    def client_id(self, value: Optional[str]) -> None: ...
+
+    @property
+    def client_secret(self) -> Optional[str]: ...
+    @client_secret.setter
+    def client_secret(self, value: Optional[str]) -> None: ...
+
     # --- Methods from CollectionOperationsMixin ---
     def get_collection_data(  # pylint: disable=line-too-long
         self,
