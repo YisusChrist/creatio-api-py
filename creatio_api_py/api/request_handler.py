@@ -64,11 +64,9 @@ def make_request(
         )
         response.raise_for_status()
     except HTTPError as e:
-        log_and_print("Authentication failed", e, api_instance.debug)
+        log_and_print("Session expired", e, api_instance.debug)
         logger.info(f"Attempting to re-authenticate for {method} request to {url}.")
-        api_instance.authenticate(
-            username=api_instance.username, password=api_instance.password, cache=False
-        )
+        api_instance.authenticate(cache=False)
         # Retry the request after re-authentication
         headers.update(_build_headers(api_instance, endpoint, method))
         response = api_instance.session.request(method, url, headers=headers, **kwargs)

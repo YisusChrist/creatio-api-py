@@ -34,6 +34,7 @@ def _oauth_authentication(
     Returns:
         Response: The response from the authentication request.
     """
+    api_instance.client_id, api_instance.client_secret = client_id, client_secret
     if cache and api_instance.oauth_file.exists():
         with open(api_instance.oauth_file, "r") as f:
             oauth_data: dict[str, str] = json.load(f)
@@ -149,10 +150,10 @@ class AuthenticationMixin:
         Returns:
             Response: The response from the authentication request.
         """
-        username = username or os.getenv("CREATIO_USERNAME", "")
-        password = password or os.getenv("CREATIO_PASSWORD", "")
-        client_id = client_id or os.getenv("CREATIO_CLIENT_ID", "")
-        client_secret = client_secret or os.getenv("CREATIO_CLIENT_SECRET", "")
+        username = username or os.getenv("CREATIO_USERNAME") or self.username
+        password = password or os.getenv("CREATIO_PASSWORD") or self.password
+        client_id = client_id or os.getenv("CREATIO_CLIENT_ID") or self.client_id
+        client_secret = client_secret or os.getenv("CREATIO_CLIENT_SECRET") or self.client_secret
 
         if all([client_id, client_secret, username, password]):
             error_message: str = (

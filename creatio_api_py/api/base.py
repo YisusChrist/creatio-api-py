@@ -37,6 +37,8 @@ class CreatioODataAPI(
     __password: str = Field(default="", init=False)
     __encryption_manager: EncryptedCookieManager = Field(init=False)
     __oauth_token: Optional[str] = Field(default=None, init=False)
+    __client_id: str = Field(default="", init=False)
+    __client_secret: str = Field(default="", init=False)
 
     def __post_init__(self) -> None:
         """Initialize the session based on the cache setting."""
@@ -124,6 +126,30 @@ class CreatioODataAPI(
         if not value:
             raise ValueError("OAuth token cannot be empty")
         self.__oauth_token = value
+        
+    @property
+    def client_id(self) -> str:
+        """Property to get the client ID."""
+        return self.__client_id
+    
+    @client_id.setter
+    def client_id(self, value: str) -> None:
+        """Property to set the client ID."""
+        if not value:
+            raise ValueError("Client ID cannot be empty")
+        self.__client_id = value
+        
+    @property
+    def client_secret(self) -> str:
+        """Property to get the client secret."""
+        return self.__client_secret
+    
+    @client_secret.setter
+    def client_secret(self, value: str) -> None:
+        """Property to set the client secret."""
+        if not value:
+            raise ValueError("Client secret cannot be empty")
+        self.__client_secret = value
 
     def _load_env(self) -> None:
         """Load the environment variables from the .env file."""

@@ -1,6 +1,7 @@
 """Utility functions for the Creatio OData API."""
 
 from email.message import Message
+from typing import Optional
 
 from rich import print  # pylint: disable=redefined-builtin
 
@@ -40,7 +41,7 @@ def parse_content_disposition(content_disposition: str) -> str | None:
     return filename.encode("latin-1").decode("utf-8") if filename else None
 
 
-def log_and_print(message: str, exception: Exception, debug: bool = False) -> None:
+def log_and_print(message: Optional[str], exception: Exception, debug: bool = False) -> None:
     """
     Log and print a message.
 
@@ -49,6 +50,7 @@ def log_and_print(message: str, exception: Exception, debug: bool = False) -> No
         level (str): The logging level (e.g., 'info', 'debug', 'error').
         debug (bool): Whether to print the message in debug mode.
     """
-    logger.error(f"{message}: {exception}")
+    log_msg: str = f"{message}: {exception}" if message else str(exception)
+    logger.error(log_msg)
     if debug:
         print_exception(exception, message)
