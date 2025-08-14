@@ -1776,14 +1776,14 @@ yaml = ["pyyaml (>=6.0.1)"]
 
 [[package]]
 name = "requests-pprint"
-version = "1.2.3"
+version = "1.2.4"
 description = "Pretty print your python HTTP requests"
 optional = false
-python-versions = "<4.0,>=3.8"
+python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "requests_pprint-1.2.3-py3-none-any.whl", hash = "sha256:c44cc333dbd99423b199ce5f438b10146b70e9b3681470c87f86c79b95c46e12"},
-    {file = "requests_pprint-1.2.3.tar.gz", hash = "sha256:c3a91898605aedacf8c4e2237d21448ac777f2592824654d2b98b83d8fd1f52a"},
+    {file = "requests_pprint-1.2.4-py3-none-any.whl", hash = "sha256:99c690db8ddaede0d169a39f96e04a3271380cb758613a8e33f27f51625f3f7d"},
+    {file = "requests_pprint-1.2.4.tar.gz", hash = "sha256:2f761c3b58fd50f0fc0d708b02433081bd9ef11aceade35d5579a9fdff054191"},
 ]
 
 [package.dependencies]
