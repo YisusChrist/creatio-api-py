@@ -1,11 +1,11 @@
 from collections import defaultdict
 from typing import Any
 
+from core_helpers.logs import logger
 from requests.exceptions import TooManyRedirects
 from requests.models import Response
 
 from creatio_api_py.interfaces import CreatioAPIInterface
-from creatio_api_py.logs import logger
 from creatio_api_py.utils import log_and_print
 
 

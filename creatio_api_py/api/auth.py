@@ -3,13 +3,13 @@ import os
 from typing import Any
 from typing import Optional
 
+from core_helpers.logs import logger
 from requests.models import Response
 
 from creatio_api_py.api.request_handler import make_request
 from creatio_api_py.api.sessions import load_session_cookie
 from creatio_api_py.api.sessions import store_session_cookie
 from creatio_api_py.interfaces import CreatioAPIInterface
-from creatio_api_py.logs import logger
 from creatio_api_py.utils import log_and_print
 
 
@@ -22,7 +22,7 @@ def _oauth_authentication(
 ) -> Response:
     """
     Reference: https://documenter.getpostman.com/view/10204500/SztHX5Qb?version=latest#11dde5c2-4a77-4248-b8a6-c75035faa5cc
-    
+
     Authenticate using OAuth credentials.
 
     Args:
@@ -78,7 +78,7 @@ def _session_authentication(
 ) -> Response:
     """
     Reference: https://documenter.getpostman.com/view/10204500/SztHX5Qb?version=latest#46f97170-d66d-4ed9-8941-08590bcdf444
-    
+
     Authenticate using session-based credentials.
 
     Args:
@@ -156,7 +156,9 @@ class AuthenticationMixin:
         username = username or os.getenv("CREATIO_USERNAME") or self.username
         password = password or os.getenv("CREATIO_PASSWORD") or self.password
         client_id = client_id or os.getenv("CREATIO_CLIENT_ID") or self.client_id
-        client_secret = client_secret or os.getenv("CREATIO_CLIENT_SECRET") or self.client_secret
+        client_secret = (
+            client_secret or os.getenv("CREATIO_CLIENT_SECRET") or self.client_secret
+        )
 
         if all([client_id, client_secret, username, password]):
             error_message: str = (

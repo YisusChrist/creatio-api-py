@@ -1,13 +1,13 @@
 from typing import Any
 from typing import Optional
 
+from core_helpers.logs import logger
 from requests.exceptions import HTTPError
 from requests.models import Response
 from requests_pprint import print_response_summary
 
 from creatio_api_py.api.sessions import store_session_cookie
 from creatio_api_py.interfaces import CreatioAPIInterface
-from creatio_api_py.logs import logger
 from creatio_api_py.utils import log_and_print
 
 

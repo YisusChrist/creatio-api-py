@@ -2,9 +2,8 @@
 
 from email.message import Message
 
+from core_helpers.logs import logger
 from rich import print  # pylint: disable=redefined-builtin
-
-from creatio_api_py.logs import logger
 
 
 def print_exception(e: Exception, custom_msg: str = "") -> None:
