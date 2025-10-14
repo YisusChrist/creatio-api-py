@@ -33,6 +33,7 @@ class CreatioODataAPI(
     cache: bool = False
     cookies_file: Path = Path(".creatio_sessions.bin")
     oauth_file: Path = Path("oauth.json")
+    encryption_key: Optional[str] = None
 
     # Public fields with validation
     api_calls: int = Field(default=0, init=False)
@@ -65,10 +66,10 @@ class CreatioODataAPI(
         if self.debug:
             print(f"[bold green]{message}[/]")
 
-        self._load_env()
-        # Load the encryption key from an environment variable
-        encryption_key: str | None = os.getenv("SESSIONS_ENCRYPTION_KEY")
-        self._encryption_manager = EncryptedCookieManager(encryption_key)
+        if not self.encryption_key:
+            # Load the encryption key from an environment variable
+            self.encryption_key = os.getenv("SESSIONS_ENCRYPTION_KEY")
+        self._encryption_manager = EncryptedCookieManager(self.encryption_key)
 
     @property
     def session(self) -> requests.Session | requests_cache.CachedSession:
@@ -106,7 +107,8 @@ class CreatioODataAPI(
             raise ValueError("api_calls cannot be negative")
         return v
 
-    def _load_env(self) -> None:
+    @staticmethod
+    def load_env() -> None:
         """Load the environment variables from the .env file."""
         env_vars_loaded: bool = load_dotenv(".env")
         if env_vars_loaded:
