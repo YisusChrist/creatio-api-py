@@ -140,10 +140,7 @@ class CollectionOperationsMixin:
         return make_request(self, "POST", f"0/odata/{collection}", json=data)
 
     def modify_collection_data(  # pylint: disable=line-too-long
-        self: CreatioAPIInterface,
-        collection: str,
-        record_id: str,
-        data: dict[str, Any],
+        self: CreatioAPIInterface, collection: str, record_id: str, data: dict[str, Any]
     ) -> Response:
         """
         Reference: https://documenter.getpostman.com/view/10204500/SztHX5Qb?version=latest#da518295-e1c8-4114-9f03-f5f236174986
@@ -186,3 +183,60 @@ class CollectionOperationsMixin:
             requests.models.Response: The response from the case list request.
         """
         return make_request(self, "DELETE", f"0/odata/{collection}({record_id})")
+
+    def put_field_collection_data(  # pylint: disable=line-too-long
+        self: CreatioAPIInterface,
+        collection: str,
+        record_id: str,
+        property: str,
+        data: str,
+    ) -> Response:
+        """
+        Reference: https://documenter.getpostman.com/view/10204500/SztHX5Qb?version=latest#1c823e79-278e-4041-9f8d-9164642868bd
+
+        Modify a specific property in a record of the specified collection. Note
+        that this method only works for binary streams stored under /Data suffix
+        fields.
+
+        Examples:
+            Modify a record in the specified collection:
+            >>> response = put_collection_data("Collection1", record_id="IdValue", property="Field1", data="Value1")
+
+        Args:
+            collection (str): The collection to modify.
+            record_id (str): The ID of the record to modify.
+            property (str): The specific property to modify.
+            data (str): The data to update.
+
+        Returns:
+            requests.models.Response: The response from the case list request.
+        """
+        return make_request(
+            self, "PUT", f"0/odata/{collection}({record_id})/{property}", data=data
+        )
+
+    def delete_field_collection_data(  # pylint: disable=line-too-long
+        self: CreatioAPIInterface, collection: str, record_id: str, property: str
+    ) -> Response:
+        """
+        Reference: https://documenter.getpostman.com/view/10204500/SztHX5Qb?version=latest#9e63019a-d128-4712-9ef8-012af1ee3ef5
+
+        Delete a specific property in a record of the specified collection. Note
+        that this method only works for binary streams stored under /Data suffix
+        fields.
+
+        Examples:
+            Delete a specific property in a record of the specified collection:
+            >>> response = delete_field_collection_data("Collection1", id="IdValue", property="Field1")
+
+        Args:
+            collection (str): The collection to delete from.
+            record_id (str): The ID of the record to delete from.
+            property (str): The specific property to delete.
+
+        Returns:
+            requests.models.Response: The response from the case list request.
+        """
+        return make_request(
+            self, "DELETE", f"0/odata/{collection}({record_id})/{property}"
+        )

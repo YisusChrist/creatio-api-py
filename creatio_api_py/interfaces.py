@@ -55,19 +55,19 @@ class CreatioAPIInterface(Protocol):
         self, collection: str, data: dict[str, Any]
     ) -> Response: ...
     def delete_collection_data(self, collection: str, record_id: str) -> Response: ...
+    def put_field_collection_data(
+        self, collection: str, record_id: str, property: str, data: str
+    ) -> Response: ...
+    def delete_field_collection_data(
+        self, collection: str, record_id: str, property: str
+    ) -> Response: ...
 
     # --- Methods from FileOperationsMixin ---
     def download_file(
-        self,
-        collection: str,
-        file_id: str,
-        path: str | Path,
+        self, collection: str, file_id: str, path: str | Path
     ) -> Response: ...
     def upload_file(
-        self,
-        collection: str,
-        entity_id: str,
-        file_path: str | Path,
+        self, collection: str, entity_id: str, file_path: str | Path
     ) -> Response: ...
 
     # --- Methods from AuthenticationMixin ---

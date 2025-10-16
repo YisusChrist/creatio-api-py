@@ -29,8 +29,6 @@ def _build_headers(
 
     if "$metadata" not in endpoint:
         headers["Accept"] = "application/json; odata=verbose"
-    if method == "PUT":
-        headers["Content-Type"] = "application/octet-stream"
 
     return headers
 
