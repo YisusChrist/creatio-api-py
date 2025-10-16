@@ -37,7 +37,7 @@ def make_request(
     api_instance: CreatioAPIInterface,
     method: str,
     endpoint: str,
-    headers: Optional[dict[str, str]] = None,
+    url: Optional[str] = None,
     **kwargs: Any,
 ) -> Response:
     """
@@ -46,15 +46,19 @@ def make_request(
     Args:
         method (str): HTTP method (GET, POST, PATCH, etc.).
         endpoint (str): The API endpoint to request.
+        url(str, optional): Full URL for the request. If provided, it overrides the
+            endpoint parameter.
         **kwargs (Any): Additional keyword arguments to pass to the request
 
     Returns:
         requests.models.Response: The response from the HTTP request.
     """
-    url: str = f"{api_instance.base_url}{endpoint}"
-    if not headers:
-        headers = {}
-    headers.update(_build_headers(api_instance, endpoint, method))
+    if not url:
+        url = f"{api_instance.base_url}{endpoint}"
+        
+    # Extract any headers passed by the caller
+    user_headers: dict[str, str] = kwargs.pop("headers", {})
+    headers: dict[str, str] = _build_headers(api_instance, endpoint, method) | user_headers
 
     try:
         response: Response = api_instance.session.request(

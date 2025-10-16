@@ -30,7 +30,7 @@ def _oauth_authentication(
         client_id (str): The client ID for OAuth.
         client_secret (str): The client secret for OAuth.
         cache (bool): Whether to use cached OAuth tokens.
-        identity_service_url (Optional[str], optional): The URL of the identity service.
+        identity_service_url(str, optional): The URL of the identity service.
 
     Returns:
         Response: The response from the authentication request.
@@ -59,9 +59,11 @@ def _oauth_authentication(
         + "/connect/token"
     )
 
-    response: Response = api_instance.session.post(identity_service_url, data=data)
-    response.raise_for_status()
+    response: Response = make_request(
+        api_instance, "POST", "", url=identity_service_url, data=data
+    )
 
+    # Extract the token from the response
     api_instance.oauth_token = response.json().get("access_token")
 
     with open(api_instance.oauth_file, "w") as f:
@@ -140,11 +142,11 @@ class AuthenticationMixin:
 
         Args:
             self (CreatioODataAPI): The API instance to use for authentication.
-            username (Optional[str], optional): The username to authenticate with.
-            password (Optional[str], optional): The password to authenticate with.
-            client_id (Optional[str], optional): The client ID for OAuth authentication.
-            client_secret (Optional[str], optional): The client secret for OAuth authentication.
-            identity_service_url (Optional[str], optional): The URL of the identity service for OAuth authentication.
+            username(str, optional): The username to authenticate with.
+            password(str, optional): The password to authenticate with.
+            client_id(str, optional): The client ID for OAuth authentication.
+            client_secret(str, optional): The client secret for OAuth authentication.
+            identity_service_url(str, optional): The URL of the identity service for OAuth authentication.
             cache (bool, optional): Whether to use cached session cookies. Defaults to True.
 
         Raises:
