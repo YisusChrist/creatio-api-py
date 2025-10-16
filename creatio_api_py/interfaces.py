@@ -35,7 +35,7 @@ class CreatioAPIInterface(Protocol):
     def encryption_manager(self) -> EncryptedCookieManager: ...
 
     # --- Methods from CollectionOperationsMixin ---
-    def get_collection_data(  # pylint: disable=line-too-long
+    def get_collection_data(
         self,
         collection: str,
         params: Optional[dict[str, str | int]] = None,
@@ -49,6 +49,7 @@ class CreatioAPIInterface(Protocol):
         value: Optional[str] = None,
         order_by: Optional[str] = None,
         filter: Optional[str] = None,
+        property: Optional[str] = None,
     ) -> Response: ...
     def add_collection_data(
         self, collection: str, data: dict[str, Any]

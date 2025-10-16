@@ -29,6 +29,7 @@ class CollectionOperationsMixin:
         value: Optional[str] = None,
         order_by: Optional[str] = None,
         filter: Optional[str] = None,
+        property: Optional[str] = None,
     ) -> Response:
         """
         Reference: https://documenter.getpostman.com/view/10204500/SztHX5Qb?version=latest#48a0da23-68ff-4030-89c3-be0e8c634d14
@@ -40,36 +41,47 @@ class CollectionOperationsMixin:
             >>> response = get_collection_data("Collection1")
             Fetch a specific record by ID:
             >>> response = get_collection_data("Collection1", record_id="123")
+            Retrieve only the count of items in a collection:
+            >>> response = get_collection_data("Collection1", only_count=True)
+            Retrieve the total count of matching items along with the data:
+            >>> response = get_collection_data("Collection1", count=True)
             Fetch a subset of items, skipping the first 10:
             >>> response = get_collection_data("Collection1", skip=10, top=5)
             Select specific fields:
             >>> response = get_collection_data("Collection1", select=["Field1", "Field2"])
+            >>> response = get_collection_data("Collection1", select="Field1,Field2")
             Expand related entities:
             >>> response = get_collection_data("Collection1", expand="RelatedCollection")
             Retrieve the value of a specific field:
             >>> response = get_collection_data("Collection1", record_id="123", value="Field1")
             Apply ordering and filtering:
             >>> response = get_collection_data("Collection1", order_by="Field1 desc", filter="Field2 eq 'Value'")
+            Retrieve the value of a specific property:
+            >>> response = get_collection_data("Collection1", record_id="123", property="Field1")
 
         Args:
             collection (str): The name of the collection to query.
-            record_id (Optional[str], optional): The ID of a specific record to retrieve.
-            count (Optional[bool], optional): Include the total count of matching items
-                in the response (`$count`).
-            skip (Optional[int], optional): Skip the specified number of items (`$skip`).
-            top (Optional[int], optional): Limit the number of items returned (`$top`).
-            select (Optional[str | list[str]], optional): Specify the fields to include
-                in the response (`$select`).
-            expand (Optional[str | list[str]], optional): Include related entities in the
-                response (`$expand`).
-            value (Optional[str], optional): Retrieve the value of a specific field
-                using the `$value` keyword.
-            order_by (Optional[str], optional): Define the order of items in the response
-                (`$orderby`).
-            filter (Optional[str], optional): Apply a filter to the items in the response
-                (`$filter`).
-            params (Optional[dict[str, Any]], optional): Additional query parameters. Use
+            params (dict[str, Any], optional): Additional query parameters. Use
                 with caution as it overrides explicit arguments.
+            record_id (str, optional): The ID of a specific record to retrieve.
+            only_count (bool, optional): Retrieve only the count of items.
+            count (bool, optional): Include the total count of matching items
+                in the response (`$count`).
+            skip (int, optional): Skip the specified number of items (`$skip`).
+            top (int, optional): Limit the number of items returned (`$top`).
+            select (str | list[str], optional): Specify the fields to include
+                in the response (`$select`).
+            expand (str | list[str], optional): Include related entities in the
+                response (`$expand`).
+            value (str, optional): Retrieve the value of a specific field
+                using the `$value` keyword.
+            order_by (str, optional): Define the order of items in the response
+                (`$orderby`).
+            filter (str, optional): Apply a filter to the items in the response
+                (`$filter`).
+            property (str, optional): Retrieve the value of a specific property
+                of a record. Specially useful if you are requesting for binary
+                data stored under /Data suffix fields.
 
         Returns:
             requests.models.Response: The HTTP response object containing the requested
@@ -81,6 +93,8 @@ class CollectionOperationsMixin:
             url += f"({record_id})"
         if value:
             url += f"/{value}/$value"
+        if property:
+            url += f"/{property}"
         elif only_count:
             url += "/$count"
 
@@ -157,6 +171,7 @@ class CollectionOperationsMixin:
     ) -> Response:
         """
         Reference: https://documenter.getpostman.com/view/10204500/SztHX5Qb?version=latest#364435a7-12ef-4924-83cf-ed9e74c23439
+
         Delete a record in the specified collection.
 
         Examples:
