@@ -14,6 +14,10 @@ def _read_encrypted_sessions(
 ) -> dict[str, dict[str, Any]]:
     """
     Read and decrypt the encrypted sessions file.
+    
+    Args:
+        api_instance (CreatioAPIInterface): The API instance to access
+            encryption manager and session file.
 
     Returns:
         dict: The decrypted sessions data, or an empty dictionary if the file
@@ -35,7 +39,14 @@ def _read_encrypted_sessions(
 def _update_session_file(
     api_instance: CreatioAPIInterface, sessions_data: dict[str, dict[str, Any]]
 ) -> None:
-    """Encrypt and save sessions data to the file."""
+    """
+    Encrypt and save sessions data to the file.
+
+    Args:
+        api_instance (CreatioAPIInterface): The API instance to access
+            encryption manager and session file.
+        sessions_data (dict): The sessions data to encrypt and save.
+    """
     logger.debug("Updating sessions file with new data.")
 
     try:
@@ -51,6 +62,8 @@ def load_session(api_instance: CreatioAPIInterface, username: str) -> bool:
     Load a session for a specific username, if available.
 
     Args:
+        api_instance (CreatioAPIInterface): The API instance to load the
+            session into.
         username (str): The username whose session to load.
 
     Returns:
@@ -66,7 +79,7 @@ def load_session(api_instance: CreatioAPIInterface, username: str) -> bool:
         api_instance.session.cookies.update(sessions_data[url][username])
     elif api_instance.client_id:
         api_instance.oauth_token = sessions_data[url][username].get("access_token")
-    
+
     logger.debug(f"Session loaded for URL {url} and user {username}.")
 
     # TODO: Find a more reliable and efficient way to check if the session is still valid
@@ -84,6 +97,8 @@ def store_session(api_instance: CreatioAPIInterface, username: str) -> None:
     Store the session for a specific username in a cache file.
 
     Args:
+        api_instance (CreatioAPIInterface): The API instance to store the
+            session from.
         username (str): The username associated with the session.
     """
     sessions_data: dict[str, dict[str, Any]] = _read_encrypted_sessions(api_instance)
@@ -97,7 +112,7 @@ def store_session(api_instance: CreatioAPIInterface, username: str) -> None:
         sessions_data[url][username] = api_instance.session_cookies
     elif api_instance.client_id:
         sessions_data[url][username] = {"access_token": api_instance.oauth_token}
-        
+
     logger.debug(f"Session stored for URL {url} and user {username}.")
 
     # Update the sessions file with the modified data
