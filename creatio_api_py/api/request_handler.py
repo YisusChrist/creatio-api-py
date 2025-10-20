@@ -66,6 +66,8 @@ def make_request(
         )
         response.raise_for_status()
     except HTTPError as e:
+        if response.status_code != 401:
+            raise e
         log_and_print("Session expired", e, api_instance.debug)
         logger.info(f"Attempting to re-authenticate for {method} request to {url}.")
         api_instance.authenticate(cache=False)

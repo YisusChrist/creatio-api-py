@@ -18,6 +18,7 @@ def _oauth_authentication(
     client_secret: str,
     cache: bool,
     identity_service_url: Optional[str] = None,
+    authorization_code: bool = True,
 ) -> Response:
     """
     Reference: https://documenter.getpostman.com/view/10204500/SztHX5Qb?version=latest#11dde5c2-4a77-4248-b8a6-c75035faa5cc
@@ -30,6 +31,8 @@ def _oauth_authentication(
         client_secret (str): The client secret for OAuth.
         cache (bool): Whether to use cached OAuth tokens.
         identity_service_url(str, optional): The URL of the identity service.
+        authorization_code (bool, optional): Whether to use authorization code
+            grant type. Defaults to False.
 
     Returns:
         Response: The response from the authentication request.
@@ -43,24 +46,55 @@ def _oauth_authentication(
         return Response()  # Simulate successful response
 
     logger.info("No valid OAuth token found")
-    data: dict[str, str] = {
-        "grant_type": "client_credentials",
-        "client_id": client_id,
-        "client_secret": client_secret,
-    }
 
-    # By default, the identity service URL is constructed from the base URL
-    # by adding the suffix "-is" to the subdomain.
-    identity_service_url = identity_service_url or (
-        str(api_instance.base_url)
-        .rstrip("/")
-        .replace(".creatio.com", "-is.creatio.com")
-        + "/connect/token"
-    )
 
-    response: Response = make_request(
-        api_instance, "POST", "", url=identity_service_url, data=data
-    )
+    if not authorization_code:
+        # By default, the identity service URL is constructed from the base URL
+        # by adding the suffix "-is" to the subdomain.
+        identity_service_url = identity_service_url or (
+            str(api_instance.base_url)
+            .rstrip("/")
+            .replace(".creatio.com", "-is.creatio.com")
+            + "/connect/token"
+        )
+        data: dict[str, str] = {
+            "grant_type": "client_credentials",
+            "client_id": client_id,
+            "client_secret": client_secret,
+        }
+
+        response: Response = make_request(
+            api_instance, "POST", "", url=identity_service_url, data=data
+        )
+    else:
+        data = {
+            "client_id": client_id,
+            "redirect_uri": "https://example.com/callback",
+            "response_type": "code",
+            "scope": "offline_access",  # ApplicationAccess_1560c9f5b788494ca000f52b1fc5fe8f
+            "state": "xyz",
+        }
+
+        response = make_request(
+            api_instance, "GET", "0/connect/authorize", params=data
+        )
+
+        auth_code: str = response.url.split("code=")[-1]
+
+        data = {
+            "grant_type": "authorization_code",
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "scope": "offline_access",
+            "redirect_uri": "https://example.com/callback",
+            "code": auth_code,
+        }
+
+        response = make_request(
+            api_instance, "POST", "0/connect/token", params=data
+        )
+
+    exit(1)
 
     # Extract the token from the response
     api_instance.oauth_token = response.json().get("access_token")
