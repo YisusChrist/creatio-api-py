@@ -31,8 +31,7 @@ class CreatioODataAPI(
     base_url: HttpUrl
     debug: bool = False
     cache: bool = False
-    cookies_file: Path = Path(".creatio_sessions.bin")
-    oauth_file: Path = Path("oauth.json")
+    session_file: Path = Path(".creatio_sessions.bin")
     encryption_key: Optional[str] = None
 
     # Public fields with validation
@@ -79,7 +78,7 @@ class CreatioODataAPI(
     @property
     def session_cookies(self) -> dict[str, Any]:
         """Property to get the session cookies."""
-        return self.session.cookies.get_dict()
+        return self._session.cookies.get_dict()
 
     @property
     def encryption_manager(self) -> EncryptedCookieManager:

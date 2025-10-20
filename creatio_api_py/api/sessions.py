@@ -9,65 +9,68 @@ from creatio_api_py.interfaces import CreatioAPIInterface
 from creatio_api_py.utils import log_and_print
 
 
-def _read_encrypted_cookies(
+def _read_encrypted_sessions(
     api_instance: CreatioAPIInterface,
 ) -> dict[str, dict[str, Any]]:
     """
-    Read and decrypt the encrypted cookies file.
+    Read and decrypt the encrypted sessions file.
 
     Returns:
-        dict: The decrypted cookies data, or an empty dictionary if the file
+        dict: The decrypted sessions data, or an empty dictionary if the file
             does not exist or decryption fails.
     """
-    logger.debug("Reading and decrypting cookies file.")
-    if not api_instance.cookies_file.exists():
+    logger.debug("Reading and decrypting sessions file.")
+    if not api_instance.session_file.exists():
         return {}
 
     try:
-        encrypted_data: bytes = api_instance.cookies_file.read_bytes()
-        logger.debug("Cookies file read successfully.")
+        encrypted_data: bytes = api_instance.session_file.read_bytes()
+        logger.debug("Sessions file read successfully.")
         return api_instance.encryption_manager.decrypt(encrypted_data)
     except Exception as e:
-        log_and_print("Failed to read or decrypt cookies file", e, api_instance.debug)
+        log_and_print("Failed to read or decrypt sessions file", e, api_instance.debug)
         return {}
 
 
-def _update_cookies_file(
-    api_instance: CreatioAPIInterface, cookies_data: dict[str, dict[str, Any]]
+def _update_session_file(
+    api_instance: CreatioAPIInterface, sessions_data: dict[str, dict[str, Any]]
 ) -> None:
-    """Encrypt and save cookies data to the file."""
-    logger.debug("Updating cookies file with new data.")
+    """Encrypt and save sessions data to the file."""
+    logger.debug("Updating sessions file with new data.")
 
     try:
-        encrypted_data: bytes = api_instance.encryption_manager.encrypt(cookies_data)
-        api_instance.cookies_file.write_bytes(encrypted_data)
-        logger.debug("Cookies data successfully updated.")
+        encrypted_data: bytes = api_instance.encryption_manager.encrypt(sessions_data)
+        api_instance.session_file.write_bytes(encrypted_data)
+        logger.debug("Sessions data successfully updated.")
     except Exception as e:
-        log_and_print("Failed to update cookies file", e, api_instance.debug)
+        log_and_print("Failed to update sessions file", e, api_instance.debug)
 
 
-def load_session_cookie(api_instance: CreatioAPIInterface, username: str) -> bool:
+def load_session(api_instance: CreatioAPIInterface, username: str) -> bool:
     """
-    Load a session cookie for a specific username, if available.
+    Load a session for a specific username, if available.
 
     Args:
-        username (str): The username whose session cookie to load.
+        username (str): The username whose session to load.
 
     Returns:
-        bool: True if a valid session cookie was loaded, False otherwise.
+        bool: True if a valid session was loaded, False otherwise.
     """
-    cookies_data: dict[str, dict[str, Any]] = _read_encrypted_cookies(api_instance)
+    sessions_data: dict[str, dict[str, Any]] = _read_encrypted_sessions(api_instance)
     url = str(api_instance.base_url)
-    if url not in cookies_data or username not in cookies_data[url]:
+    if url not in sessions_data or username not in sessions_data[url]:
         return False
 
-    # Load the cookies into the session
-    api_instance.session.cookies.update(cookies_data[url][username])
-    logger.debug(f"Session cookie loaded for URL {url} and user {username}.")
+    # Load the cached sessions for the given username
+    if api_instance.username:
+        api_instance.session.cookies.update(sessions_data[url][username])
+    elif api_instance.client_id:
+        api_instance.oauth_token = sessions_data[url][username].get("access_token")
+    
+    logger.debug(f"Session loaded for URL {url} and user {username}.")
 
-    # TODO: Find a more reliable and efficient way to check if the session
-    # cookie is still valid
-    # Check if the session cookie is still valid
+    # TODO: Find a more reliable and efficient way to check if the session is still valid
+    # Check if the session is still valid
     try:
         response: Response = api_instance.get_collection_data("Account/$count")
         # Check if the request was redirected to the login page
@@ -76,21 +79,26 @@ def load_session_cookie(api_instance: CreatioAPIInterface, username: str) -> boo
         return False
 
 
-def store_session_cookie(api_instance: CreatioAPIInterface, username: str) -> None:
+def store_session(api_instance: CreatioAPIInterface, username: str) -> None:
     """
-    Store the session cookie for a specific username in a cache file.
+    Store the session for a specific username in a cache file.
 
     Args:
-        username (str): The username associated with the session cookie.
+        username (str): The username associated with the session.
     """
-    cookies_data: dict[str, dict[str, Any]] = _read_encrypted_cookies(api_instance)
+    sessions_data: dict[str, dict[str, Any]] = _read_encrypted_sessions(api_instance)
 
-    # Create a nested dictionary to store cookies for multiple URLs and usernames
-    cookies_data = defaultdict(lambda: defaultdict(dict), cookies_data)
-
-    # Update cookies for the given username
+    # Create a nested dictionary to store sessions for multiple URLs and usernames
+    sessions_data = defaultdict(lambda: defaultdict(dict), sessions_data)
     url = str(api_instance.base_url)
-    cookies_data[url][username] = api_instance.session_cookies
 
-    # Update the cookies file with the modified data
-    _update_cookies_file(api_instance, dict(cookies_data))
+    # Update the cached sessions for the given username
+    if api_instance.username:
+        sessions_data[url][username] = api_instance.session_cookies
+    elif api_instance.client_id:
+        sessions_data[url][username] = {"access_token": api_instance.oauth_token}
+        
+    logger.debug(f"Session stored for URL {url} and user {username}.")
+
+    # Update the sessions file with the modified data
+    _update_session_file(api_instance, dict(sessions_data))

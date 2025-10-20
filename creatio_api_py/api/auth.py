@@ -1,4 +1,3 @@
-import json
 import os
 from typing import Any
 from typing import Optional
@@ -7,8 +6,8 @@ from core_helpers.logs import logger
 from requests.models import Response
 
 from creatio_api_py.api.request_handler import make_request
-from creatio_api_py.api.sessions import load_session_cookie
-from creatio_api_py.api.sessions import store_session_cookie
+from creatio_api_py.api.sessions import load_session
+from creatio_api_py.api.sessions import store_session
 from creatio_api_py.interfaces import CreatioAPIInterface
 from creatio_api_py.utils import log_and_print
 
@@ -36,11 +35,11 @@ def _oauth_authentication(
         Response: The response from the authentication request.
     """
     api_instance.client_id, api_instance.client_secret = client_id, client_secret
-    if cache and api_instance.oauth_file.exists():
-        with open(api_instance.oauth_file, "r") as f:
-            oauth_data: dict[str, str] = json.load(f)
-
-        api_instance.oauth_token = oauth_data.get("access_token")
+    if cache and load_session(api_instance, client_id):
+        message: str = f"Using cached OAuth token for client ID {client_id}."
+        logger.debug(message)
+        if api_instance.debug:
+            print(message)
         return Response()  # Simulate successful response
 
     logger.info("No valid OAuth token found")
@@ -65,9 +64,7 @@ def _oauth_authentication(
 
     # Extract the token from the response
     api_instance.oauth_token = response.json().get("access_token")
-
-    with open(api_instance.oauth_file, "w") as f:
-        json.dump(response.json(), f, indent=4)
+    store_session(api_instance, client_id)
 
     return response
 
@@ -94,7 +91,7 @@ def _session_authentication(
     """
     api_instance.username, api_instance.password = username, password
     # Attempt to load a cached session cookie for this username
-    if cache and load_session_cookie(api_instance, username):
+    if cache and load_session(api_instance, username):
         message: str = f"Using cached session cookie for user {username}."
         logger.debug(message)
         if api_instance.debug:
@@ -117,7 +114,7 @@ def _session_authentication(
 
     # Extract the cookie from the response
     api_instance.session_cookies.update(response.cookies)
-    store_session_cookie(api_instance, username)
+    store_session(api_instance, username)
 
     return response
 

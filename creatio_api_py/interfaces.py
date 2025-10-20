@@ -17,8 +17,7 @@ class CreatioAPIInterface(Protocol):
     base_url: HttpUrl
     debug: bool
     cache: bool
-    cookies_file: Path
-    oauth_file: Path
+    session_file: Path
     username: str
     password: str
     client_id: str

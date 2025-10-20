@@ -6,7 +6,7 @@ from requests.exceptions import HTTPError
 from requests.models import Response
 from requests_pprint import print_response_summary
 
-from creatio_api_py.api.sessions import store_session_cookie
+from creatio_api_py.api.sessions import store_session
 from creatio_api_py.interfaces import CreatioAPIInterface
 from creatio_api_py.utils import log_and_print
 
@@ -81,7 +81,7 @@ def make_request(
     # If the response contains new cookies, update the session cookies
     if response.cookies and endpoint != "ServiceModel/AuthService.svc/Login":
         api_instance.session.cookies.update(response.cookies)  # type: ignore
-        store_session_cookie(api_instance, api_instance.username)
+        store_session(api_instance, api_instance.username)
         logger.debug("New cookies stored in the session.")
 
     api_instance.api_calls += 1
