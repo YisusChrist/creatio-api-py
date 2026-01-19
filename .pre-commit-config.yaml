@@ -99,7 +99,7 @@ repos:
           - --all
         id: pycln
   - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 25.12.0
+    rev: 26.1.0
     hooks:
       - id: black
   - repo: https://github.com/pycqa/isort
@@ -112,7 +112,7 @@ repos:
         language_version: "3.12"
         name: isort (python)
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.11.2
+    rev: v4.12.0
     hooks:
       - id: commitizen
       - id: commitizen-branch
