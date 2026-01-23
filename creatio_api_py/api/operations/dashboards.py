@@ -231,15 +231,10 @@ class DashboardOperationsMixin:
         dashboard_config: dict = dashboard_config["parameters"]
         dashboard_config = deep_unescape(dashboard_config)
 
-        with open("dashboard_config_debug.json", "w", encoding="utf-8") as f:
-            json.dump(dashboard_config, f, ensure_ascii=False, indent=2)
-
         now = datetime.now().strftime("%d_%m_%Y_%H_%M")
         file_name = f"{dashboard_config['caption'].lower().replace(' ', '_')}_{now}"
 
         esq = _parse_to_esq(dashboard_config)
-        with open("esq_debug.json", "w", encoding="utf-8") as f:
-            json.dump(esq, f, ensure_ascii=False, indent=2)
 
         # encode payload json to str
         esq_serialized = json.dumps(esq["esqSerialized"], separators=(",", ":"))
