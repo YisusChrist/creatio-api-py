@@ -7,6 +7,7 @@ from typing import Optional
 
 import requests
 import requests_cache
+from core_helpers.logs import logger
 from dotenv import load_dotenv
 from pydantic import Field
 from pydantic import HttpUrl
@@ -16,14 +17,17 @@ from rich import print  # pylint: disable=redefined-builtin
 
 from creatio_api_py.api.auth import AuthenticationMixin
 from creatio_api_py.api.operations.collections import CollectionOperationsMixin
+from creatio_api_py.api.operations.dashboards import DashboardOperationsMixin
 from creatio_api_py.api.operations.files import FileOperationsMixin
 from creatio_api_py.encryption import EncryptedCookieManager
-from core_helpers.logs import logger
 
 
 @dataclass(config={"arbitrary_types_allowed": True})
 class CreatioODataAPI(
-    AuthenticationMixin, CollectionOperationsMixin, FileOperationsMixin
+    AuthenticationMixin,
+    CollectionOperationsMixin,
+    FileOperationsMixin,
+    DashboardOperationsMixin,
 ):
     """A class to interact with the Creatio OData API."""
 
