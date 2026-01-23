@@ -53,6 +53,9 @@ class CreatioAPIInterface(Protocol):
     def add_collection_data(
         self, collection: str, data: dict[str, Any]
     ) -> Response: ...
+    def modify_collection_data(
+        self, collection: str, record_id: str, data: dict[str, Any]
+    ) -> Response: ...
     def delete_collection_data(self, collection: str, record_id: str) -> Response: ...
     def put_field_collection_data(
         self, collection: str, record_id: str, property: str, data: str
