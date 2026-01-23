@@ -11,9 +11,7 @@ from creatio_api_py.interfaces import CreatioAPIInterface
 from creatio_api_py.utils import log_and_print
 
 
-def _build_headers(
-    api_instance: CreatioAPIInterface, endpoint: str, method: str
-) -> dict[str, str]:
+def _build_headers(api_instance: CreatioAPIInterface, endpoint: str) -> dict[str, str]:
     """Construct request headers."""
     headers: dict[str, str] = {}
 
@@ -53,28 +51,28 @@ def make_request(
     Returns:
         requests.models.Response: The response from the HTTP request.
     """
-    if not url:
-        url = f"{api_instance.base_url}{endpoint}"
-        
+    url = url or f"{api_instance.base_url}{endpoint}"
+
     # Extract any headers passed by the caller
     user_headers: dict[str, str] = kwargs.pop("headers", {})
-    headers: dict[str, str] = _build_headers(api_instance, endpoint, method) | user_headers
+    headers: dict[str, str] = _build_headers(api_instance, endpoint) | user_headers
 
     try:
         response: Response = api_instance.session.request(
             method, url, headers=headers, **kwargs
         )
+        if api_instance.debug:
+            print_response_summary(response)
         response.raise_for_status()
     except HTTPError as e:
         log_and_print("Session expired", e, api_instance.debug)
         logger.info(f"Attempting to re-authenticate for {method} request to {url}.")
         api_instance.authenticate(cache=False)
         # Retry the request after re-authentication
-        headers.update(_build_headers(api_instance, endpoint, method))
+        headers.update(_build_headers(api_instance, endpoint))
         response = api_instance.session.request(method, url, headers=headers, **kwargs)
-
-    if api_instance.debug:
-        print_response_summary(response)
+        if api_instance.debug:
+            print_response_summary(response)
 
     response.raise_for_status()
 
