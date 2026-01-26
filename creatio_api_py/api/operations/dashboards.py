@@ -1,14 +1,12 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any
-from urllib.parse import unquote
 
 from requests.models import Response
 
+from creatio_api_py.api.operations.files import download_file
 from creatio_api_py.api.request_handler import make_request
 from creatio_api_py.interfaces import CreatioAPIInterface
-from creatio_api_py.utils import parse_content_disposition
 
 
 def deep_unescape(obj):
@@ -201,8 +199,8 @@ def _parse_to_esq(dashboard_config: dict) -> dict:
 
 class DashboardOperationsMixin:
     """
-    Mixin class for file operations in Creatio API.
-    Provides methods to download and upload files.
+    Mixin class for dashboard operations in Creatio API.
+    Provides methods to export dashboards.
     """
 
     def export_dashboard(
@@ -254,20 +252,4 @@ class DashboardOperationsMixin:
             "GET",
             f"0/rest/ReportService/GetExportToExcelData/{export_key}/{file_name}",
         )
-
-        # Get the file name from the response headers
-        content_disposition: str = response.headers.get("Content-Disposition", "")
-        file_name: str | None = parse_content_disposition(content_disposition)
-        if not file_name:
-            raise ValueError(
-                "Could not determine the file name from the response headers"
-            )
-
-        # URL decode
-        file_name = unquote(file_name)
-
-        final_path: Path = path if isinstance(path, Path) else Path(path)
-        with open(final_path / file_name, "wb") as f:
-            f.write(response.content)
-
-        return response
+        return download_file(response, path)
