@@ -67,75 +67,77 @@ def parse_filter_node(node: dict) -> dict:
 
         return parsed if parsed["items"] else None
 
-    # InFilter
-    elif filter_type == 4 or filter_type == 1:
-        return {
-            "filterType": 4,
-            "comparisonType": node["comparisonType"],
-            "isEnabled": node["isEnabled"],
-            "trimDateTimeParameterToDate": node.get(
-                "trimDateTimeParameterToDate", False
-            ),
-            "leftExpression": {
-                "expressionType": node["leftExpression"]["expressionType"],
-                "columnPath": node["leftExpression"]["columnPath"],
-            },
-            "rightExpressions": [
-                {
-                    "expressionType": expr["expressionType"],
-                    "parameter": {
-                        "dataValueType": expr["parameter"]["dataValueType"],
-                        "value": expr["parameter"]["value"]["value"],
-                    },
-                }
-                for expr in node.get("rightExpressions", [])
-            ],
-        }
+    filter_data = {
+        "filterType": filter_type,
+        "comparisonType": node["comparisonType"],
+        "isEnabled": node["isEnabled"],
+        "trimDateTimeParameterToDate": node.get("trimDateTimeParameterToDate", False),
+        "leftExpression": {
+            "expressionType": node["leftExpression"]["expressionType"],
+        },
+    }
 
-    """
     # CompareFilter
-    elif filter_type == 1:
+    if filter_type == 1:
         left = node["leftExpression"]
+        right = node["rightExpression"]
 
-        parsed_left = {"expressionType": left["expressionType"]}
-
-        # FunctionExpression (YEAR, MONTH, etc.)
         if left["expressionType"] == 1:
-            parsed_left.update(
-                {
-                    "functionType": left["functionType"],
-                    "functionArgument": {
-                        "expressionType": left["functionArgument"]["expressionType"],
-                        "columnPath": left["functionArgument"]["columnPath"],
-                    },
-                    "datePartType": left.get("datePartType"),
-                }
-            )
-        else:
-            parsed_left["columnPath"] = left["columnPath"]
-
-        return {
-            "filterType": 1,
-            "comparisonType": node["comparisonType"],
-            "isEnabled": node["isEnabled"],
-            "trimDateTimeParameterToDate": node.get(
-                "trimDateTimeParameterToDate", False
-            ),
-            "leftExpression": parsed_left,
-            "rightExpression": {
-                "expressionType": node["rightExpression"]["expressionType"],
-                "parameter": {
-                    "dataValueType": node["rightExpression"]["parameter"][
-                        "dataValueType"
-                    ],
-                    "value": node["rightExpression"]["parameter"]["value"],
+            # Function expression (YEAR, MONTH, etc.)
+            filter_data["leftExpression"] = {
+                "functionType": left["functionType"],
+                "functionArgument": {
+                    "expressionType": left["functionArgument"]["expressionType"],
+                    "columnPath": left["functionArgument"]["columnPath"],
                 },
-            },
-        }
-    """
+                "datePartType": left.get("datePartType"),
+            }
+        else:
+            # Simple expression
+            filter_data["leftExpression"]["columnPath"] = left["columnPath"]
 
+        if right["expressionType"] == 1:
+            filter_data["rightExpression"] = {
+                "expressionType": right["expressionType"],
+                "functionType": right["functionType"],
+                "macrosType": right["macrosType"],
+            }
+        else:
+            filter_data["rightExpression"] = {
+                "expressionType": right["expressionType"],
+                "parameter": {
+                    "dataValueType": right["parameter"]["dataValueType"],
+                    "value": right["parameter"]["value"],
+                },
+            }
+
+        return filter_data
+    # IsNullFilter
+    elif filter_type == 2:
+        filter_data["isNull"] = node["isNull"]
+    # InFilter
+    elif filter_type == 4:
+        filter_data["rightExpressions"] = [
+            {
+                "expressionType": expr["expressionType"],
+                "parameter": {
+                    "dataValueType": expr["parameter"]["dataValueType"],
+                    "value": expr["parameter"]["value"]["value"],
+                },
+            }
+            for expr in node.get("rightExpressions", [])
+        ]
+    # AggregationFilter
+    elif filter_type == 5:
+        filter_data["subFilters"] = parse_filter_node(
+            node["subFilters"]
+        )
     # Unknown filter → ignore
-    return None
+    else:
+        return None
+
+    filter_data["leftExpression"]["columnPath"] = node["leftExpression"]["columnPath"]
+    return filter_data
 
 
 def parse_column(column: dict) -> dict:
@@ -150,56 +152,18 @@ def parse_column(column: dict) -> dict:
             "columnPath": column_name,
         },
     }
+
     if "orderDirection" in column:
         columns_config["orderDirection"] = column["orderDirection"]
         columns_config["orderPosition"] = column["orderPosition"]
 
     if "aggregationType" in column and column["aggregationType"] != 0:
-        column_filter = column["serializedFilter"]
-        column_items = {}
-
-        if column_filter.get("isEnabled", True):
-            for key, filter_item in column_filter["items"].items():
-                if not filter_item["isEnabled"]:
-                    continue
-
-                column_items[key] = {
-                    "filterType": filter_item["filterType"],
-                    "comparisonType": filter_item["comparisonType"],
-                    "isEnabled": filter_item["isEnabled"],
-                    "trimDateTimeParameterToDate": filter_item[
-                        "trimDateTimeParameterToDate"
-                    ],
-                    "leftExpression": {
-                        "expressionType": filter_item["leftExpression"][
-                            "expressionType"
-                        ],
-                        "columnPath": filter_item["leftExpression"]["columnPath"],
-                    },
-                    "rightExpressions": [
-                        {
-                            "expressionType": expr["expressionType"],
-                            "parameter": {
-                                "dataValueType": expr["parameter"]["dataValueType"],
-                                "value": expr["parameter"]["value"]["value"],
-                            },
-                        }
-                        for expr in filter_item.get("rightExpressions", [])
-                    ],
-                }
-
         columns_config["expression"] = {
             "expressionType": 3,
             "functionType": 2,
             "aggregationType": column["aggregationType"],
             "columnPath": column_name,
-            "subFilters": {
-                "items": column_items,
-                "logicalOperation": column_filter["logicalOperation"],
-                "isEnabled": column_filter["isEnabled"],
-                "filterType": column_filter["filterType"],
-                "rootSchemaName": column_filter["rootSchemaName"],
-            },
+            "subFilters": parse_filter_node(column["serializedFilter"]),
         }
 
     return columns_config
@@ -237,8 +201,16 @@ def _parse_to_esq(dashboard_config: dict) -> dict:
 
     filters = parse_filter_node(dashboard_config["filterData"])
 
-    if dashboard_config["entitySchemaName"] == "Case":
+    # Case section
+    if (
+        dashboard_config["sectionId"] == "c97824d9-3952-4d5e-9a5b-c6c468bf555a"
+        and "sectionBindingColumn" in dashboard_config
+    ):
         # Add status filter for cases
+        binding_path: str = (
+            f"[Case:Id:{dashboard_config['sectionBindingColumn']}].Status.IsFinal"
+        )
+
         esq_payload["esqSerialized"]["filters"] = {
             "items": {
                 "0a0c11a3-1453-4a49-a06f-3536eef413e0": {
@@ -253,7 +225,7 @@ def _parse_to_esq(dashboard_config: dict) -> dict:
                                     "trimDateTimeParameterToDate": False,
                                     "leftExpression": {
                                         "expressionType": 0,
-                                        "columnPath": "[Case:Id:Id].Status.IsFinal",
+                                        "columnPath": binding_path,
                                     },
                                     "rightExpression": {
                                         "expressionType": 2,
@@ -282,9 +254,13 @@ def _parse_to_esq(dashboard_config: dict) -> dict:
     else:
         esq_payload["esqSerialized"]["filters"] = filters
 
-    columns = {
-        c["metaPath"]: parse_column(c) for c in dashboard_config["gridConfig"]["items"]
-    }
+    columns = {}
+    for c in dashboard_config["gridConfig"]["items"]:
+        if "metaPath" not in c:
+            print(f"Skipping column without metaPath: {c['bindTo']}")
+            continue
+
+        columns[c["metaPath"]] = parse_column(c)
 
     esq_payload["esqSerialized"]["columns"]["items"] = columns  # type: ignore
 
