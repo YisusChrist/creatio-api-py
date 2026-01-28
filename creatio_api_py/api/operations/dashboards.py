@@ -40,8 +40,14 @@ def _deep_unescape(obj):
 
 def parse_filter_node(node: dict) -> dict:
     """
-    Parses a Terrasoft filter node (FilterGroup or leaf filter)
-    into an ESQ-compatible structure.
+    Parses a Terrasoft filter node (FilterGroup or leaf filter) into an
+    ESQ-compatible structure.
+
+    Args:
+        node (dict): The filter node to parse.
+
+    Returns:
+        dict: The parsed filter node in ESQ format.
     """
     if not node.get("isEnabled", True):
         return None
@@ -85,6 +91,7 @@ def parse_filter_node(node: dict) -> dict:
         if left["expressionType"] == 1:
             # Function expression (YEAR, MONTH, etc.)
             filter_data["leftExpression"] = {
+                "expressionType": left["expressionType"],
                 "functionType": left["functionType"],
                 "functionArgument": {
                     "expressionType": left["functionArgument"]["expressionType"],
@@ -129,9 +136,7 @@ def parse_filter_node(node: dict) -> dict:
         ]
     # AggregationFilter
     elif filter_type == 5:
-        filter_data["subFilters"] = parse_filter_node(
-            node["subFilters"]
-        )
+        filter_data["subFilters"] = parse_filter_node(node["subFilters"])
     # Unknown filter → ignore
     else:
         return None
@@ -140,8 +145,47 @@ def parse_filter_node(node: dict) -> dict:
     return filter_data
 
 
+def parse_arithmetic_node(node: dict) -> dict:
+    """
+    Parse an arithmetic expression node into ESQ format.
+
+    Args:
+        node (dict): The arithmetic expression node.
+
+    Returns:
+        dict: The parsed arithmetic expression in ESQ format.
+    """
+    if "value" in node:
+        return {
+            "expressionType": 2,
+            "parameter": {
+                "dataValueType": node["dataType"],
+                "value": node["value"],
+            },
+        }
+
+    if "subFilters" in node:
+        return {
+            "expressionType": 3,
+            "functionType": 2,
+            "aggregationType": node["aggregationType"],
+            "columnPath": node["columnPath"],
+            "subFilters": parse_filter_node(node["subFilters"]),
+        }
+
+    elif "leftExpression" in node and "rightExpression" in node:
+        return {
+            "expressionType": 4,
+            "arithmeticOperation": node["arithmeticOperatorType"],
+            "leftArithmeticOperand": parse_arithmetic_node(node["leftExpression"]),
+            "rightArithmeticOperand": parse_arithmetic_node(node["rightExpression"]),
+        }
+
+    return None
+
+
 def parse_column(column: dict) -> dict:
-    column_name = column["metaPath"]
+    column_name = column.get("metaPath")
     columns_config = {
         "caption": column["caption"],
         "orderDirection": 0,
@@ -165,6 +209,8 @@ def parse_column(column: dict) -> dict:
             "columnPath": column_name,
             "subFilters": parse_filter_node(column["serializedFilter"]),
         }
+    elif not column_name:
+        columns_config["expression"] = parse_arithmetic_node(column["expression"])
 
     return columns_config
 
@@ -254,13 +300,9 @@ def _parse_to_esq(dashboard_config: dict) -> dict:
     else:
         esq_payload["esqSerialized"]["filters"] = filters
 
-    columns = {}
-    for c in dashboard_config["gridConfig"]["items"]:
-        if "metaPath" not in c:
-            print(f"Skipping column without metaPath: {c['bindTo']}")
-            continue
-
-        columns[c["metaPath"]] = parse_column(c)
+    columns = {
+        c["bindTo"]: parse_column(c) for c in dashboard_config["gridConfig"]["items"]
+    }
 
     esq_payload["esqSerialized"]["columns"]["items"] = columns  # type: ignore
 
