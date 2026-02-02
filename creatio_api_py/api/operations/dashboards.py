@@ -9,11 +9,17 @@ from creatio_api_py.api.request_handler import make_request
 from creatio_api_py.interfaces import CreatioAPIInterface
 
 
-def _deep_unescape(obj):
+def _deep_unescape(obj: dict | list | str) -> dict | list | str:
     """
+    Converts deeply escaped JSON strings within a structure to real Python
+    objects.
+
     Recursively walks a structure and:
     - If a value is a string that contains valid JSON -> json.loads()
     - Repeats until everything is real Python objects
+
+    Returns:
+        dict | list | str: The unescaped object.
     """
     if isinstance(obj, dict):
         return {k: _deep_unescape(v) for k, v in obj.items()}
@@ -38,16 +44,20 @@ def _deep_unescape(obj):
         return obj
 
 
-def parse_filter_node(node: dict) -> dict:
+def parse_filter_node(node: dict) -> dict | None:
     """
     Parses a Terrasoft filter node (FilterGroup or leaf filter) into an
     ESQ-compatible structure.
+
+    It handles different filter types including CompareFilter, IsNullFilter,
+    InFilter, AggregationFilter, and FilterGroup (recursive).
 
     Args:
         node (dict): The filter node to parse.
 
     Returns:
-        dict: The parsed filter node in ESQ format.
+        dict | None: The parsed filter node in ESQ format or None if the node
+            is disabled or invalid.
     """
     if not node.get("isEnabled", True):
         return None
@@ -56,7 +66,7 @@ def parse_filter_node(node: dict) -> dict:
 
     # FilterGroup (recursive)
     if filter_type == 6:
-        parsed = {
+        parsed: dict = {
             "items": {},
             "logicalOperation": node.get("logicalOperation", 0),
             "isEnabled": node.get("isEnabled", True),
@@ -69,11 +79,11 @@ def parse_filter_node(node: dict) -> dict:
         for key, child in node.get("items", {}).items():
             parsed_child = parse_filter_node(child)
             if parsed_child is not None:
-                parsed["items"][key] = parsed_child
+                parsed["items"][key] = parsed_child  # type: ignore
 
         return parsed if parsed["items"] else None
 
-    filter_data = {
+    filter_data: dict = {
         "filterType": filter_type,
         "comparisonType": node["comparisonType"],
         "isEnabled": node["isEnabled"],
@@ -85,8 +95,8 @@ def parse_filter_node(node: dict) -> dict:
 
     # CompareFilter
     if filter_type == 1:
-        left = node["leftExpression"]
-        right = node["rightExpression"]
+        left: dict = node["leftExpression"]
+        right: dict = node["rightExpression"]
 
         if left["expressionType"] == 1:
             # Function expression (YEAR, MONTH, etc.)
@@ -145,7 +155,7 @@ def parse_filter_node(node: dict) -> dict:
     return filter_data
 
 
-def parse_arithmetic_node(node: dict) -> dict:
+def parse_arithmetic_node(node: dict) -> dict | None:
     """
     Parse an arithmetic expression node into ESQ format.
 
@@ -153,7 +163,8 @@ def parse_arithmetic_node(node: dict) -> dict:
         node (dict): The arithmetic expression node.
 
     Returns:
-        dict: The parsed arithmetic expression in ESQ format.
+        dict | None: The parsed arithmetic expression in ESQ format or None if
+            the node is invalid.
     """
     if "value" in node:
         return {
@@ -185,8 +196,18 @@ def parse_arithmetic_node(node: dict) -> dict:
 
 
 def parse_column(column: dict) -> dict:
-    column_name = column.get("metaPath")
-    columns_config = {
+    """
+    Parse a dashboard column configuration into ESQ format handling simple
+    columns, aggregated columns, and arithmetic expressions.
+
+    Args:
+        column (dict): The dashboard column configuration.
+
+    Returns:
+        dict: The parsed column configuration in ESQ format.
+    """
+    column_name: str | None = column.get("metaPath")
+    columns_config: dict = {
         "caption": column["caption"],
         "orderDirection": 0,
         "orderPosition": -1,
@@ -215,9 +236,17 @@ def parse_column(column: dict) -> dict:
     return columns_config
 
 
-def _parse_to_esq(dashboard_config: dict) -> dict:
-    """Convert dashboard configuration to ESQ format."""
-    esq_payload = {
+def parse_to_esq(dashboard_config: dict) -> dict:
+    """
+    Convert dashboard configuration to ESQ format.
+
+    Args:
+        dashboard_config (dict): The dashboard configuration.
+
+    Returns:
+        dict: The ESQ representation of the dashboard configuration.
+    """
+    esq_payload: dict = {
         "esqSerialized": {
             "rootSchemaName": dashboard_config["entitySchemaName"],
             "operationType": 0,
@@ -245,7 +274,7 @@ def _parse_to_esq(dashboard_config: dict) -> dict:
         },
     }
 
-    filters = parse_filter_node(dashboard_config["filterData"])
+    filters: dict | None = parse_filter_node(dashboard_config["filterData"])
 
     # Case section
     if (
@@ -300,7 +329,7 @@ def _parse_to_esq(dashboard_config: dict) -> dict:
     else:
         esq_payload["esqSerialized"]["filters"] = filters
 
-    columns = {
+    columns: dict[str, dict] = {
         c["bindTo"]: parse_column(c) for c in dashboard_config["gridConfig"]["items"]
     }
 
@@ -326,6 +355,12 @@ class DashboardOperationsMixin:
 
         Args:
             dashboard_id (str): The ID of the dashboard to export.
+            dashboard_name (str): The name of the dashboard to export.
+            path (str | Path, optional): The path to save the exported
+                dashboard file. Defaults to the current working directory.
+        Raises:
+            ValueError: If the dashboard with the specified name is not found
+                or if the export key cannot be obtained.
 
         Returns:
             Response: The response from the dashboard export request.
@@ -336,19 +371,26 @@ class DashboardOperationsMixin:
             ).content.decode("utf-8-sig")
         ).get(dashboard_name)
         if not dashboard_config:
-            raise ValueError(f"Dashboard with ID {dashboard_id} not found.")
+            raise ValueError(f"Dashboard with name {dashboard_name} not found.")
 
         dashboard_config: dict = dashboard_config["parameters"]
         dashboard_config = _deep_unescape(dashboard_config)  # type: ignore
 
+        with open(Path("json/dashboard_config.json"), "w", encoding="utf-8") as f:
+            json.dump(dashboard_config, f, ensure_ascii=False, indent=2)
+
         now = datetime.now().strftime("%d_%m_%Y_%H_%M")
         file_name = f"{dashboard_config['caption'].lower().replace(' ', '_')}_{now}"
 
-        esq = _parse_to_esq(dashboard_config)
+        esq = parse_to_esq(dashboard_config)
 
         # encode payload json to str
         esq_serialized = json.dumps(esq["esqSerialized"], separators=(",", ":"))
         payload = {"esqSerialized": esq_serialized}
+
+        with open(Path("json/esq.json"), "w", encoding="utf-8") as f:
+            data = {"esqSerialized": json.loads(esq_serialized)}
+            json.dump(data, f, ensure_ascii=False, indent=2)
 
         export_key = make_request(
             self,
