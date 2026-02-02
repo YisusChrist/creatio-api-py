@@ -376,23 +376,16 @@ class DashboardOperationsMixin:
         dashboard_config: dict = dashboard_config["parameters"]
         dashboard_config = _deep_unescape(dashboard_config)  # type: ignore
 
-        with open(Path("json/dashboard_config.json"), "w", encoding="utf-8") as f:
-            json.dump(dashboard_config, f, ensure_ascii=False, indent=2)
+        now: str = datetime.now().strftime("%d_%m_%Y_%H_%M")
+        file_name: str = f"{dashboard_config['caption'].lower().replace(' ', '_')}_{now}"
 
-        now = datetime.now().strftime("%d_%m_%Y_%H_%M")
-        file_name = f"{dashboard_config['caption'].lower().replace(' ', '_')}_{now}"
-
-        esq = parse_to_esq(dashboard_config)
+        esq: dict = parse_to_esq(dashboard_config)
 
         # encode payload json to str
-        esq_serialized = json.dumps(esq["esqSerialized"], separators=(",", ":"))
-        payload = {"esqSerialized": esq_serialized}
+        esq_serialized: str = json.dumps(esq["esqSerialized"], separators=(",", ":"))
+        payload: dict[str, str] = {"esqSerialized": esq_serialized}
 
-        with open(Path("json/esq.json"), "w", encoding="utf-8") as f:
-            data = {"esqSerialized": json.loads(esq_serialized)}
-            json.dump(data, f, ensure_ascii=False, indent=2)
-
-        export_key = make_request(
+        export_key: str = make_request(
             self,
             "POST",
             "0/rest/ReportService/GetExportToExcelKey",
