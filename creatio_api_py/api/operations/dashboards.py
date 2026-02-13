@@ -261,9 +261,9 @@ def parse_to_esq(dashboard_config: dict) -> dict:
             "useLocalization": True,
             "useRecordDeactivation": False,
             "serverESQCacheParameters": {
-               "cacheLevel": 0,
-               "cacheGroup": "",
-               "cacheItemName": "",
+                "cacheLevel": 0,
+                "cacheGroup": "",
+                "cacheItemName": "",
             },
             "queryOptimize": False,
             "useMetrics": False,
