@@ -346,16 +346,17 @@ class DashboardOperationsMixin:
 
     def export_dashboard(
         self: CreatioAPIInterface,
+        dashboard_tab_id: str,
         dashboard_id: str,
-        dashboard_name: str,
         path: str | Path = Path.cwd(),
     ) -> Response:
         """
         Export a dashboard from Creatio.
 
         Args:
+            dashboard_tab_id (str): The ID of the dashboard tab containing the
+                dashboard to export.
             dashboard_id (str): The ID of the dashboard to export.
-            dashboard_name (str): The name of the dashboard to export.
             path (str | Path, optional): The path to save the exported
                 dashboard file. Defaults to the current working directory.
         Raises:
@@ -367,17 +368,19 @@ class DashboardOperationsMixin:
         """
         dashboard_config = json.loads(
             self.get_collection_data(
-                "SysDashboard", record_id=dashboard_id, value="Items"
+                "SysDashboard", record_id=dashboard_tab_id, value="Items"
             ).content.decode("utf-8-sig")
-        ).get(dashboard_name)
+        ).get(dashboard_id)
         if not dashboard_config:
-            raise ValueError(f"Dashboard with name {dashboard_name} not found.")
+            raise ValueError(f"Dashboard with name {dashboard_id} not found.")
 
         dashboard_config: dict = dashboard_config["parameters"]
         dashboard_config = _deep_unescape(dashboard_config)  # type: ignore
 
         now: str = datetime.now().strftime("%d_%m_%Y_%H_%M")
-        file_name: str = f"{dashboard_config['caption'].lower().replace(' ', '_')}_{now}"
+        file_name: str = (
+            f"{dashboard_config['caption'].lower().replace(' ', '_')}_{now}"
+        )
 
         esq: dict = parse_to_esq(dashboard_config)
 
