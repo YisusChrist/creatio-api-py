@@ -1,6 +1,7 @@
 import mimetypes
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote
 
 from requests.exceptions import RequestException
 from requests.models import Response
@@ -9,6 +10,37 @@ from creatio_api_py.api.request_handler import make_request
 from creatio_api_py.interfaces import CreatioAPIInterface
 from creatio_api_py.utils import log_and_print
 from creatio_api_py.utils import parse_content_disposition
+
+
+def download_file(response: Response, path: str | Path = Path.cwd()) -> Response:
+    """
+    Download a file from a response and save it to the specified path.
+
+    Args:
+        response (Response): The response containing the file to download.
+        path (str | Path): The path to save the downloaded file. Defaults to the
+            current directory.
+
+    Raises:
+        ValueError: If the file name cannot be determined from the response.
+
+    Returns:
+        Response: The response from the file download request.
+    """
+    # Get the file name from the response headers
+    content_disposition: str = response.headers.get("Content-Disposition", "")
+    file_name: str | None = parse_content_disposition(content_disposition)
+    if not file_name:
+        raise ValueError("Could not determine the file name from the response headers")
+
+    # URL decode
+    file_name = unquote(file_name)
+
+    final_path: Path = path if isinstance(path, Path) else Path(path)
+    with open(final_path / file_name, "wb") as f:
+        f.write(response.content)
+
+    return response
 
 
 class FileOperationsMixin:
@@ -38,20 +70,7 @@ class FileOperationsMixin:
         response: Response = make_request(
             self, "GET", f"0/rest/FileService/Download/{collection}/{file_id}"
         )
-
-        # Get the file name from the response headers
-        content_disposition: str = response.headers.get("Content-Disposition", "")
-        file_name: str | None = parse_content_disposition(content_disposition)
-        if not file_name:
-            raise ValueError(
-                "Could not determine the file name from the response headers"
-            )
-
-        final_path: Path = path if isinstance(path, Path) else Path(path)
-        with open(final_path / file_name, "wb") as f:
-            f.write(response.content)
-
-        return response
+        return download_file(response, path)
 
     def upload_file(
         self: CreatioAPIInterface,

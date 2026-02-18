@@ -71,6 +71,13 @@ class CreatioAPIInterface(Protocol):
     def upload_file(
         self, collection: str, entity_id: str, file_path: str | Path
     ) -> Response: ...
+    
+    # --- Methods from DashboardOperationsMixin ---
+    def export_dashboard(
+        self,
+        dashboard_id: str,
+        dashboard_name: str,
+    ) -> Response: ...
 
     # --- Methods from AuthenticationMixin ---
     def authenticate(
