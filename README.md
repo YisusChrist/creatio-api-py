@@ -1,4 +1,4 @@
-![Creatio](https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/Creatio_logo.svg/2560px-Creatio_logo.svg.png)
+![Creatio](https://upload.wikimedia.org/wikipedia/commons/7/76/Creatio_logo.svg)
 
 <p align="center">
     <a href="https://github.com/YisusChrist/creatio-api-py/issues">
