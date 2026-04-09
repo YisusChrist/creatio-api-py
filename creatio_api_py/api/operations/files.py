@@ -98,7 +98,10 @@ class FileOperationsMixin:
             data: bytes = f.read()
 
         file_length: int = len(data)
-        parent_collection: str = collection[: -len("File")]
+        if collection.endswith("File"):
+            parent_collection: str = collection[: -len("File")]
+        else:
+            parent_collection = collection
 
         # Create the file in the collection table
         payload: dict[str, Any] = {
