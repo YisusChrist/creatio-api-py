@@ -8,7 +8,6 @@ from requests.models import Response
 
 from creatio_api_py.api.request_handler import make_request
 from creatio_api_py.interfaces import CreatioAPIInterface
-from creatio_api_py.utils import log_and_print
 from creatio_api_py.utils import parse_content_disposition
 
 
@@ -144,9 +143,6 @@ class FileOperationsMixin:
                 data=data,
             )
         except RequestException as e:
-            if e.response is not None:
-                message: str = e.response.json().get("error", "")
-                log_and_print(message, e, self.debug)
             # Delete the file record if the upload fails
             self.delete_collection_data(collection, file_id)
             raise
