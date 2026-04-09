@@ -61,6 +61,7 @@ def make_request(
         response: Response = api_instance.session.request(
             method, url, headers=headers, **kwargs
         )
+        api_instance.api_calls += 1
         if api_instance.debug:
             print_response_summary(response)
         response.raise_for_status()
@@ -84,9 +85,11 @@ def make_request(
         log_and_print("Session expired", e, api_instance.debug)
         logger.info(f"Attempting to re-authenticate for {method} request to {url}.")
         api_instance.authenticate(cache=False)
+
         # Retry the request after re-authentication
         headers.update(_build_headers(api_instance, endpoint))
         response = api_instance.session.request(method, url, headers=headers, **kwargs)
+        api_instance.api_calls += 1
         if api_instance.debug:
             print_response_summary(response)
 
@@ -97,7 +100,5 @@ def make_request(
         api_instance.session.cookies.update(response.cookies)  # type: ignore
         store_session(api_instance, api_instance.username)
         logger.debug("New cookies stored in the session.")
-
-    api_instance.api_calls += 1
 
     return response
