@@ -65,6 +65,22 @@ def make_request(
             print_response_summary(response)
         response.raise_for_status()
     except HTTPError as e:
+        if response.status_code != 401 and response.text:
+            response_error = response.json().get("error")
+            if "innererror" in response_error:
+                error_message = response_error["innererror"]
+                if "internalexception" in response_error["innererror"]:
+                    error_message = error_message["internalexception"]
+                    if "message" in response_error["innererror"]["internalexception"]:
+                        error_message = error_message["message"]
+                elif "message" in response_error["innererror"]:
+                    error_message = error_message["message"]
+            else:
+                error_message = response_error
+
+            log_and_print(error_message, e, api_instance.debug)
+            raise  # Re-raise the exception if it's not an authentication error
+
         log_and_print("Session expired", e, api_instance.debug)
         logger.info(f"Attempting to re-authenticate for {method} request to {url}.")
         api_instance.authenticate(cache=False)
