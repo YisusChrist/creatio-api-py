@@ -94,10 +94,8 @@ class FileOperationsMixin:
         """
         # Read the file data to ensure the file is valid
         file_path = file_path if isinstance(file_path, Path) else Path(file_path)
-        with open(file_path, "rb") as f:
-            data: bytes = f.read()
 
-        file_length: int = len(data)
+        file_length: int = file_path.stat().st_size
         if collection.endswith("File"):
             parent_collection: str = collection[: -len("File")]
         else:
@@ -131,20 +129,21 @@ class FileOperationsMixin:
         }
 
         headers: dict[str, str] = {
-            "Content-Type": "application/octet-stream",
+            "Content-Type": mime_type or "application/octet-stream",
             "Content-Disposition": f"attachment; filename={file_path.name}",
             "Content-Range": f"bytes 0-{file_length - 1}/{file_length}",
         }
 
         try:
-            response = make_request(
-                self,
-                "POST",
-                f"0/rest/FileApiService/UploadFile",
-                headers=headers,
-                params=params,
-                data=data,
-            )
+            with open(file_path, "rb") as f:
+                response = make_request(
+                    self,
+                    "POST",
+                    f"0/rest/FileApiService/UploadFile",
+                    headers=headers,
+                    params=params,
+                    data=f,
+                )
         except RequestException as e:
             # Delete the file record if the upload fails
             self.delete_collection_data(collection, file_id)

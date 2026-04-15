@@ -88,6 +88,11 @@ def make_request(
 
         # Retry the request after re-authentication
         headers.update(_build_headers(api_instance, endpoint))
+
+        data = kwargs.get("data")
+        if data and hasattr(data, "seek"):
+            data.seek(0)
+
         response = api_instance.session.request(method, url, headers=headers, **kwargs)
         api_instance.api_calls += 1
         if api_instance.debug:
