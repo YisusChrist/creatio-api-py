@@ -71,7 +71,14 @@ class CreatioAPIInterface(Protocol):
     def upload_file(
         self, collection: str, entity_id: str, file_path: str | Path
     ) -> Response: ...
-    
+    def import_excel_file(
+        self,
+        entity_schema_name: str,
+        entity_schema_uid: str,
+        file_path: str | Path,
+        custom_column_mapping: dict[str, Any] | None = None,
+    ) -> Response: ...
+
     # --- Methods from DashboardOperationsMixin ---
     def export_dashboard(
         self,
