@@ -52,6 +52,7 @@ def make_request(
         requests.models.Response: The response from the HTTP request.
     """
     url = url or f"{api_instance.base_url}{endpoint}"
+    url = url.replace("//", "/").replace(":/", "://")  # Ensure proper URL formatting
 
     # Extract any headers passed by the caller
     user_headers: dict[str, str] = kwargs.pop("headers", {})
@@ -66,20 +67,30 @@ def make_request(
             print_response_summary(response)
         response.raise_for_status()
     except HTTPError as e:
-        if response.status_code != 401 and response.text:
-            response_error = response.json().get("error")
-            if "innererror" in response_error:
-                error_message = response_error["innererror"]
-                if "internalexception" in response_error["innererror"]:
-                    error_message = error_message["internalexception"]
-                    if "message" in response_error["innererror"]["internalexception"]:
-                        error_message = error_message["message"]
-                elif "message" in response_error["innererror"]:
-                    error_message = error_message["message"]
-            else:
-                error_message = response_error
+        response = e.response
+        if response.status_code != 401:
+            if response.text:
+                try:
+                    response_error = response.json().get("error")
+                except ValueError:
+                    response_error = response.text
 
-            log_and_print(error_message, e, api_instance.debug)
+                if "innererror" in response_error and isinstance(response_error, dict):
+                    error_message = response_error["innererror"]
+                    if "internalexception" in response_error["innererror"]:
+                        error_message = error_message["internalexception"]
+                        if (
+                            "message"
+                            in response_error["innererror"]["internalexception"]
+                        ):
+                            error_message = error_message["message"]
+                    elif "message" in response_error["innererror"]:
+                        error_message = error_message["message"]
+                else:
+                    error_message = response_error
+
+                log_and_print(error_message, e, api_instance.debug)
+
             raise  # Re-raise the exception if it's not an authentication error
 
         log_and_print("Session expired", e, api_instance.debug)
