@@ -128,7 +128,6 @@ class FileOperationsMixin:
             "parentColumnName": parent_collection,
             "parentColumnValue": entity_id,
         }
-
         headers: dict[str, str] = {
             "Content-Type": mime_type or "application/octet-stream",
             "Content-Disposition": f"attachment; filename={file_path.name}",
@@ -390,12 +389,13 @@ class FileOperationsMixin:
             "fileId": session_id,
             "totalFileLength": file_length,
             "mimeType": mime_type,
-            "columnName": "FileData",
             "fileName": file_path.name,
+            "columnName": "FileData",
             "parentColumnName": "Id",
             "parentColumnValue": session_id,
         }
         headers: dict[str, str] = {
+            "Content-Type": mime_type or "application/octet-stream",
             "Content-Disposition": f"attachment; filename={file_path.name}",
             "Content-Range": f"bytes 0-{file_length - 1}/{file_length}",
         }
