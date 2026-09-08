@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 from datetime import datetime
 from pathlib import Path
@@ -348,7 +350,7 @@ class DashboardOperationsMixin:
         self: CreatioAPIInterface,
         dashboard_tab_id: str,
         dashboard_id: str,
-        path: str | Path = Path.cwd(),
+        path: str | Path | None = None,
     ) -> Response:
         """
         Export a dashboard from Creatio.
@@ -358,7 +360,7 @@ class DashboardOperationsMixin:
                 dashboard to export.
             dashboard_id (str): The ID of the dashboard to export.
             path (str | Path, optional): The path to save the exported
-                dashboard file. Defaults to the current working directory.
+                dashboard file. Defaults to the current directory.
         Raises:
             ValueError: If the dashboard with the specified name is not found
                 or if the export key cannot be obtained.
@@ -366,6 +368,11 @@ class DashboardOperationsMixin:
         Returns:
             Response: The response from the dashboard export request.
         """
+        if not path:
+            path = Path.cwd()
+        elif not isinstance(path, Path):
+            path = Path(path)
+
         dashboard_config = json.loads(
             self.get_collection_data(
                 "SysDashboard", record_id=dashboard_tab_id, value="Items"

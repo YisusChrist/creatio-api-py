@@ -1,8 +1,9 @@
-# interfaces.py
+"""Interfaces module to interact with the API Protocol."""
+
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Any
-from typing import Optional
-from typing import Protocol
+from typing import Any, Protocol
 
 import requests
 import requests_cache
@@ -22,7 +23,7 @@ class CreatioAPIInterface(Protocol):
     password: str
     client_id: str
     client_secret: str
-    oauth_token: Optional[str]
+    oauth_token: str | None
     api_calls: int
 
     # --- Properties ---
@@ -37,18 +38,18 @@ class CreatioAPIInterface(Protocol):
     def get_collection_data(
         self,
         collection: str,
-        params: Optional[dict[str, str | int]] = None,
-        record_id: Optional[str] = None,
-        only_count: Optional[bool] = None,
-        count: Optional[bool] = None,
-        skip: Optional[int] = None,
-        top: Optional[int] = None,
-        select: Optional[str | list[str]] = None,
-        expand: Optional[str | list[str]] = None,
-        value: Optional[str] = None,
-        order_by: Optional[str] = None,
-        filter: Optional[str] = None,
-        property: Optional[str] = None,
+        params: dict[str, str | int] | None = None,
+        record_id: str | None = None,
+        only_count: bool | None = None,
+        count: bool | None = None,
+        skip: int | None = None,
+        top: int | None = None,
+        select: str | list[str] | None = None,
+        expand: str | list[str] | None = None,
+        value: str | None = None,
+        order_by: str | None = None,
+        filter: str | None = None,
+        property: str | None = None,
     ) -> Response: ...
     def add_collection_data(
         self, collection: str, data: dict[str, Any]
@@ -89,10 +90,10 @@ class CreatioAPIInterface(Protocol):
     # --- Methods from AuthenticationMixin ---
     def authenticate(
         self,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
-        client_id: Optional[str] = None,
-        client_secret: Optional[str] = None,
-        identity_service_url: Optional[str] = None,
+        username: str | None = None,
+        password: str | None = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+        identity_service_url: str | None = None,
         cache: bool = True,
     ) -> Response: ...

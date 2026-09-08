@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import mimetypes
 import uuid
 from pathlib import Path
@@ -13,14 +15,13 @@ from creatio_api_py.interfaces import CreatioAPIInterface
 from creatio_api_py.utils import parse_content_disposition
 
 
-def download_file(response: Response, path: str | Path = Path.cwd()) -> Response:
+def download_file(response: Response, path: Path) -> Response:
     """
     Download a file from a response and save it to the specified path.
 
     Args:
         response (Response): The response containing the file to download.
-        path (str | Path): The path to save the downloaded file. Defaults to the
-            current directory.
+        path (Path): The path to save the downloaded file.
 
     Raises:
         ValueError: If the file name cannot be determined from the response.
@@ -37,8 +38,7 @@ def download_file(response: Response, path: str | Path = Path.cwd()) -> Response
     # URL decode
     file_name = unquote(file_name)
 
-    final_path: Path = path if isinstance(path, Path) else Path(path)
-    with open(final_path / file_name, "wb") as f:
+    with open(path / file_name, "wb") as f:
         f.write(response.content)
 
     return response
@@ -54,7 +54,7 @@ class FileOperationsMixin:
         self: CreatioAPIInterface,
         collection: str,
         file_id: str,
-        path: str | Path = Path.cwd(),
+        path: str | Path | None = None,
     ) -> Response:
         """
         Download a file from Creatio.
@@ -62,12 +62,17 @@ class FileOperationsMixin:
         Args:
             collection (str): The collection containing the file.
             file_id (str): The ID of the file to download.
-            path (str | Path): The path to save the downloaded file. Defaults to the
+            path (str | Path, optional): The path to save the downloaded file. Defaults to the
                 current directory.
 
         Returns:
             Response: The response from the file download request.
         """
+        if not path:
+            path = Path.cwd()
+        elif not isinstance(path, Path):
+            path = Path(path)
+
         response: Response = make_request(
             self, "GET", f"0/rest/FileService/Download/{collection}/{file_id}"
         )
@@ -139,12 +144,12 @@ class FileOperationsMixin:
                 response = make_request(
                     self,
                     "POST",
-                    f"0/rest/FileApiService/UploadFile",
+                    "0/rest/FileApiService/UploadFile",
                     headers=headers,
                     params=params,
                     data=f,
                 )
-        except RequestException as e:
+        except RequestException:
             # Delete the file record if the upload fails
             self.delete_collection_data(collection, file_id)
             raise
@@ -341,7 +346,7 @@ class FileOperationsMixin:
         if not result["success"]:
             print("[red]ERROR[/]")
             raise ValueError("Failed to query system settings.")
-        print(f"[green]OK[/]")
+        print("[green]OK[/]")
 
         max_file_size = result["values"]["FileImportMaxFileSize"]["value"] * 1024 * 1024
         if file_length > max_file_size:
@@ -373,7 +378,7 @@ class FileOperationsMixin:
         if not result["success"]:
             print("[red]ERROR[/]")
             raise ValueError("Failed to set import object.")
-        print(f"[green]OK[/]")
+        print("[green]OK[/]")
 
         # 3. Upload the file using the SaveFile endpoint
         print(f"Uploading file '{file_path.name}'...", end=" ")
@@ -409,7 +414,7 @@ class FileOperationsMixin:
         if not result["success"]:
             print("[red]ERROR[/]")
             raise ValueError("Failed to upload file.")
-        print(f"[green]OK[/]")
+        print("[green]OK[/]")
 
         # 4. Check if the file is valid using the CheckIsFileValid endpoint
         print(f"Checking if file '{file_path.name}' is valid...", end=" ")
@@ -422,7 +427,7 @@ class FileOperationsMixin:
         if not result["success"]:
             print("[red]ERROR[/]")
             raise ValueError("Failed to check if file is valid.")
-        print(f"[green]OK[/]")
+        print("[green]OK[/]")
 
         # 5. Set the file info using the SetFileInfo endpoint
         print(f"Setting file info for '{file_path.name}'...", end=" ")
@@ -440,10 +445,10 @@ class FileOperationsMixin:
         if not result["success"]:
             print("[red]ERROR[/]")
             raise ValueError("Failed to set file info.")
-        print(f"[green]OK[/]")
+        print("[green]OK[/]")
 
         # 6. Get the columns mapping parameters using the GetColumnsMappingParameters endpoint
-        print(f"Getting columns mapping parameters...", end=" ")
+        print("Getting columns mapping parameters...", end=" ")
 
         endpoint = "/0/rest/FileImportService/GetColumnsMappingParameters"
         payload = {"request": {"importSessionId": session_id}}
@@ -453,13 +458,13 @@ class FileOperationsMixin:
         if not result["success"]:
             print("[red]ERROR[/]")
             raise ValueError("Failed to get columns mapping parameters.")
-        print(f"[green]OK[/]")
+        print("[green]OK[/]")
 
         # 7. Set the columns mapping parameters using the SetColumnsMappingParameters endpoint
-        print(f"Setting columns mapping parameters...", end=" ")
+        print("Setting columns mapping parameters...", end=" ")
 
         if custom_column_mapping is None:
-            print(f"[yellow]SKIPPED[/]")
+            print("[yellow]SKIPPED[/]")
         else:
             endpoint = "/0/rest/FileImportService/SetColumnsMappingParameters"
             payload = {
@@ -474,10 +479,10 @@ class FileOperationsMixin:
             if not result["success"]:
                 print("[red]ERROR[/]")
                 raise ValueError("Failed to set columns mapping parameters.")
-            print(f"[green]OK[/]")
+            print("[green]OK[/]")
 
         # 8. Validate the import using the Validate endpoint
-        print(f"Validating import...", end=" ")
+        print("Validating import...", end=" ")
 
         endpoint = "/0/rest/FileImportValidationService/Validate"
         payload = {"request": {"importSessionId": session_id}}
@@ -487,10 +492,10 @@ class FileOperationsMixin:
         if not result["success"]:
             print("[red]ERROR[/]")
             raise ValueError("Failed to validate import.")
-        print(f"[green]OK[/]")
+        print("[green]OK[/]")
 
         # 9. Perform the import using the Import endpoint
-        print(f"Performing import...", end=" ")
+        print("Performing import...", end=" ")
 
         endpoint = "/0/rest/FileImportService/Import"
         payload = {"request": {"importSessionId": session_id}}
@@ -500,10 +505,10 @@ class FileOperationsMixin:
         if not result["success"]:
             print("[red]ERROR[/]")
             raise ValueError("Failed to perform import.")
-        print(f"[green]OK[/]")
+        print("[green]OK[/]")
 
         # 10. Get the import session info using the GetImportSessionInfo endpoint
-        print(f"Getting import session info...", end=" ")
+        print("Getting import session info...", end=" ")
 
         endpoint = "/0/rest/FileImportService/GetImportSessionInfo"
         payload = {"request": {"importSessionId": session_id}}
@@ -513,7 +518,7 @@ class FileOperationsMixin:
         if not result["success"]:
             print("[red]ERROR[/]")
             raise ValueError("Failed to get import session info.")
-        print(f"[green]OK[/]")
+        print("[green]OK[/]")
 
         print("Result of import:")
         print(result)

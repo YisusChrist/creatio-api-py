@@ -1,8 +1,10 @@
 """Encryption module for encrypting and decrypting cookies."""
 
+from __future__ import annotations
+
 import json
-from typing import Any
 from pathlib import Path
+from typing import Any
 
 from cryptography.fernet import Fernet
 
@@ -15,12 +17,12 @@ def _create_encryption_key() -> str:
     if choice == "y":
         env_file_path: Path = Path(".env").resolve()
         write_mode: str = "w" if not env_file_path.exists() else "a"
-        
+
         with open(env_file_path, write_mode) as env_file:
             env_file.write(f'SESSIONS_ENCRYPTION_KEY="{key}"\n')
-            
+
         print(f"Key saved to {env_file_path}")
-                    
+
     return key
 
 
@@ -28,12 +30,16 @@ class EncryptedCookieManager:
     def __init__(self, key: str | None) -> None:
         if not key:
             print("Encryption key is not set in the environment.")
-            choice: str = input("Do you want to generate a new key? (y/n): ").strip().lower()
+            choice: str = (
+                input("Do you want to generate a new key? (y/n): ").strip().lower()
+            )
             if choice != "y":
-                raise ValueError("Encryption key is required for encryption/decryption.")
+                raise ValueError(
+                    "Encryption key is required for encryption/decryption."
+                )
 
             key = _create_encryption_key()
-        
+
         self.fernet = Fernet(key)
 
     def encrypt(self, data: dict[str, Any]) -> bytes:

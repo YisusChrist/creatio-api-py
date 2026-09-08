@@ -18,7 +18,7 @@ def print_exception(e: Exception, custom_msg: str = "") -> None:
         custom_text: str = f"{custom_msg}: "
     else:
         custom_text = ""
-    print(f"{custom_text}[red]{e.__class__.__name__}:[/] {str(e)}")
+    print(f"{custom_text}[red]{e.__class__.__name__}:[/] {e!s}")
 
 
 def parse_content_disposition(content_disposition: str) -> str | None:

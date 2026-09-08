@@ -1,13 +1,13 @@
+from __future__ import annotations
+
 import os
 from typing import Any
-from typing import Optional
 
 from core_helpers.logs import logger
 from requests.models import Response
 
 from creatio_api_py.api.request_handler import make_request
-from creatio_api_py.api.sessions import load_session
-from creatio_api_py.api.sessions import store_session
+from creatio_api_py.api.sessions import load_session, store_session
 from creatio_api_py.interfaces import CreatioAPIInterface
 from creatio_api_py.utils import log_and_print
 
@@ -17,7 +17,7 @@ def _oauth_authentication(
     client_id: str,
     client_secret: str,
     cache: bool,
-    identity_service_url: Optional[str] = None,
+    identity_service_url: str | None = None,
 ) -> Response:
     """
     Reference: https://documenter.getpostman.com/view/10204500/SztHX5Qb?version=latest#11dde5c2-4a77-4248-b8a6-c75035faa5cc
@@ -127,11 +127,11 @@ class AuthenticationMixin:
 
     def authenticate(
         self: CreatioAPIInterface,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
-        client_id: Optional[str] = None,
-        client_secret: Optional[str] = None,
-        identity_service_url: Optional[str] = None,
+        username: str | None = None,
+        password: str | None = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+        identity_service_url: str | None = None,
         cache: bool = True,
     ) -> Response:
         """
@@ -160,9 +160,7 @@ class AuthenticationMixin:
         )
 
         if all([client_id, client_secret, username, password]):
-            error_message: str = (
-                "Cannot use both oauth credentials and username/password for authentication."
-            )
+            error_message: str = "Cannot use both oauth credentials and username/password for authentication."
             log_and_print(error_message, ValueError(error_message), self.debug)
             raise ValueError(error_message)
 

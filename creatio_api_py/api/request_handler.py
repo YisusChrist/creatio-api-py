@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from typing import Any
-from typing import Optional
 
 from core_helpers.logs import logger
 from requests.exceptions import HTTPError
@@ -35,7 +36,7 @@ def make_request(
     api_instance: CreatioAPIInterface,
     method: str,
     endpoint: str,
-    url: Optional[str] = None,
+    url: str | None = None,
     **kwargs: Any,
 ) -> Response:
     """

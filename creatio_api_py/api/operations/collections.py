@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from typing import Any
-from typing import Optional
 
 from requests.models import Response
 
@@ -18,18 +19,18 @@ class CollectionOperationsMixin:
     def get_collection_data(  # pylint: disable=line-too-long
         self: CreatioAPIInterface,
         collection: str,
-        params: Optional[dict[str, str | int]] = None,
-        record_id: Optional[str] = None,
-        only_count: Optional[bool] = None,
-        count: Optional[bool] = None,
-        skip: Optional[int] = None,
-        top: Optional[int] = None,
-        select: Optional[str | list[str]] = None,
-        expand: Optional[str | list[str]] = None,
-        value: Optional[str] = None,
-        order_by: Optional[str] = None,
-        filter: Optional[str] = None,
-        property: Optional[str] = None,
+        params: dict[str, str | int] | None = None,
+        record_id: str | None = None,
+        only_count: bool | None = None,
+        count: bool | None = None,
+        skip: int | None = None,
+        top: int | None = None,
+        select: str | list[str] | None = None,
+        expand: str | list[str] | None = None,
+        value: str | None = None,
+        order_by: str | None = None,
+        filter: str | None = None,
+        property: str | None = None,
     ) -> Response:
         """
         Reference: https://documenter.getpostman.com/view/10204500/SztHX5Qb?version=latest#48a0da23-68ff-4030-89c3-be0e8c634d14
